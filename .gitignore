@@ -56,3 +56,4 @@ coverage
 Αν έχεις τοπικά logs από containers
 
 docker-compose.override.yml
+package-lock.json
