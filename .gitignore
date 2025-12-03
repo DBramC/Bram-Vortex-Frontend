@@ -1,43 +1,58 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+--- Logs (Αρχεία καταγραφής λαθών) ---
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+logs
+.log
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-### IntelliJ IDEA ###
+--- Dependencies (Βιβλιοθήκες - Τεράστιος φάκελος) ---
+
+node_modules
+.pnp
+.pnp.js
+
+--- Build Output (Τα έτοιμα site για production) ---
+
+dist
+dist-ssr
+*.local
+
+--- Editor / IDE Settings (Ρυθμίσεις του υπολογιστή σου) ---
+
+IntelliJ IDEA
+
 .idea
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+VS Code (Αν το ανοίξει κάποιος άλλος)
 
-### VS Code ###
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+
+Mac / Windows System Files
+
+.DS_Store
+Thumbs.db
+
+--- Environment Variables (ΜΥΣΤΙΚΑ) ---
 
 .env
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+--- Testing ---
+
+coverage
+
+--- Docker (Προαιρετικά) ---
+
+Αν έχεις τοπικά logs από containers
+
+docker-compose.override.yml
