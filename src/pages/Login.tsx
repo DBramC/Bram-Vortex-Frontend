@@ -5,7 +5,7 @@ const Login: React.FC = () => {
     const handleLogin = () => {
         // Στέλνουμε τον χρήστη στο Auth Service (μέσω Kong)
         // Αν το Kong τρέχει στο localhost (port 80), το αφήνουμε έτσι.
-        window.location.href = 'http://localhost/oauth2/authorization/github';
+        window.location.href = 'http://localhost:8000/oauth2/authorization/github';
     };
 
     return (
