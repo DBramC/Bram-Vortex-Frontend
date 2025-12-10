@@ -1,40 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AuthCallback: React.FC = () => {
     const navigate = useNavigate();
-    const [message, setMessage] = useState('Αυθεντικοποίηση... παρακαλώ περιμένετε ⏳');
+    const [message, setMessage] = useState('Αυθεντικοποίηση...');
+    const processed = useRef(false); // Flag για να μην τρέξει διπλά
 
     useEffect(() => {
-        // 1. Διαβάζουμε το ?token=XYZ από το URL
-        // ΣΗΜΕΙΩΣΗ: Αν το token είναι στο Fragment (#token=...) πρέπει να χρησιμοποιηθεί window.location.hash
+        if (processed.current) return; // Αν έχει ήδη τρέξει, σταμάτα
+        processed.current = true;
+
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
 
         if (token) {
-            console.log("Token received:", token);
-            // 2. Το αποθηκεύουμε στο LocalStorage
+            console.log("✅ Token βρέθηκε:", token);
             localStorage.setItem('jwt_token', token);
+            setMessage('Επιτυχία! Μετάβαση...');
 
-            // 3. Επιτυχία - Ανακατεύθυνση στο Dashboard
-            setMessage('Επιτυχής σύνδεση! Ανακατεύθυνση στο Dashboard...');
-
-            setTimeout(() => {
-                // Καθαρίζουμε το ιστορικό για να μην μπορεί ο χρήστης να γυρίσει πίσω με το 'back'
-                navigate('/dashboard', { replace: true });
-            }, 500);
-
+            // Άμεση μετάβαση χωρίς καθυστέρηση για δοκιμή
+            navigate('/dashboard', { replace: true });
         } else {
-            // 4. Αποτυχία - Ανακατεύθυνση στο Login
-            setMessage('❌ Αποτυχία εύρεσης Token. Επιστροφή στη σελίδα σύνδεσης.');
-            setTimeout(() => {
-                navigate('/', { replace: true });
-            }, 1000);
+            console.error("❌ Δεν βρέθηκε token στο URL");
+            setMessage('Σφάλμα: Δεν βρέθηκε token.');
+            navigate('/', { replace: true });
         }
     }, [navigate]);
 
     return (
-        // Χρησιμοποιούμε το ίδιο κεντράρισμα με το Login component για συνέπεια
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             <div className="p-8 bg-white shadow-xl rounded-lg text-center">
                 <h2 className="text-xl font-semibold text-indigo-600">
