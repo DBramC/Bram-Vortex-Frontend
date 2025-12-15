@@ -1,0 +1,16 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    uses: DBramC/Bram-Vortex/.github/workflows/gitops-pipeline.yml@main
+    with:
+      # Το όνομα που θα έχει η εικόνα στο DockerHub
+      image_name: christosbramis/bram-vortex-frontend
+      # Πού βρίσκεται το YAML μέσα στο κεντρικό repo (Bram-Vortex)
+      manifest_path: k8s/Frontend/frontend-deployment.yaml
+
+    secrets: inherit
