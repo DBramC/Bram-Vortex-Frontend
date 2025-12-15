@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api/axiosInstance'; // 1. Το κάνουμε import
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-    const [token, setToken] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false); // Για να δείχνουμε ότι κάτι συμβαίνει
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('jwt_token');
-        if (!storedToken) {
-            // Αν δεν έχει token, πέτα τον έξω
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
             navigate('/', { replace: true });
-        } else {
-            setToken(storedToken);
         }
     }, [navigate]);
 
@@ -20,59 +18,86 @@ const Dashboard: React.FC = () => {
         navigate('/', { replace: true });
     };
 
-    if (!token) {
-        // Εμφάνιση loading screen μέχρι να ολοκληρωθεί ο έλεγχος του token
-        return (
-            // Χρησιμοποιούμε p-8 και h-screen για να εξασφαλίσουμε ορατότητα
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 p-8">
-                <div className="p-8 bg-indigo-50 shadow-2xl rounded-xl text-center border border-indigo-200">
-                    <h2 className="text-xl font-semibold text-indigo-700 animate-pulse">
-                        Έλεγχος κατάστασης σύνδεσης...
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Φόρτωση δεδομένων
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    // 2. Εδώ χρησιμοποιούμε ΠΡΑΓΜΑΤΙΚΑ το axios instance
+    const handleImportRepo = async () => {
+        // Ζητάμε από τον χρήστη ένα URL (προσωρινά με prompt)
+        const repoUrl = prompt("Εισάγετε το Git Repository URL:");
+
+        if (!repoUrl) return; // Αν πατήσει Cancel, σταματάμε
+
+        setIsLoading(true);
+
+        try {
+            // --- Η ΚΛΗΣΗ ΣΤΟ BACKEND ---
+            // Το 'api' θα βάλει αυτόματα το header: Authorization: Bearer <token>
+            // Στέλνουμε το repoUrl στο backend
+            const response = await api.post('/repo-service/import', {
+                url: repoUrl
+            });
+
+            console.log("Server Response:", response.data);
+            alert(`Επιτυχία! Το Backend απάντησε: ${JSON.stringify(response.data)}`);
+
+        } catch (error: any) {
+            console.error("Error importing repo:", error);
+            // Επειδή δεν έχεις το endpoint ακόμα, θα μπει εδώ.
+            // Αλλά αυτό επιβεβαιώνει ότι το Axios προσπάθησε να μιλήσει!
+            alert("Το αίτημα στάλθηκε (μαζί με το Token), αλλά το Backend έβγαλε σφάλμα (λογικό αν δεν υπάρχει το endpoint).");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
-        // Χρησιμοποιούμε flexbox για κεντράρισμα, όπως στο Login
         <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-            {/* Κάρτα Dashboard: Μεγάλη, με σκιές */}
-            <div className="p-8 bg-white shadow-2xl rounded-xl w-full max-w-2xl">
-                <h1 className="text-3xl font-extrabold mb-4 text-indigo-700 text-center">
-                    🚀 Bram Vortex Dashboard
-                </h1>
-                <p className="mb-6 text-gray-600 text-center">
-                    Καλωσήρθες! Η συνεδρία σου είναι ενεργή και αυθεντικοποιημένη.
-                </p>
+            <div className="p-8 bg-white shadow-2xl rounded-xl w-full max-w-lg border-t-4 border-indigo-600">
 
-                <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
-                        Session Token (JWT):
-                    </label>
-                    {/* Token Display Area */}
-                    <textarea
-                        readOnly
-                        rows={6}
-                        className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm resize-none focus:ring-indigo-500 focus:border-indigo-500"
-                        value={token || ''}
-                        placeholder="Το token σας θα εμφανιστεί εδώ..."
-                    />
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
+                        Bram Vortex
+                    </h1>
+                    <p className="text-gray-500">
+                        CI/CD & Repository Management
+                    </p>
                 </div>
 
-                {/* Logout Button */}
-                <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-lg font-medium rounded-xl shadow-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-red-500 transition duration-300 ease-in-out transform hover:scale-[1.005]"
-                >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                    </svg>
-                    Αποσύνδεση
-                </button>
+                <div className="space-y-4">
+
+                    {/* IMPORT REPO BUTTON */}
+                    <button
+                        onClick={handleImportRepo}
+                        disabled={isLoading} // Κλειδώνει όσο φορτώνει
+                        className={`group w-full flex items-center justify-center px-6 py-4 border border-transparent text-lg font-bold rounded-xl text-white shadow-lg transition-all duration-300 transform hover:-translate-y-1
+                        ${isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-xl'}`}
+                    >
+                        {isLoading ? (
+                            // Spinner αν φορτώνει
+                            <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            // Icon: Cloud Download
+                            <svg className="w-8 h-8 mr-3 text-indigo-200 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                        )}
+                        {isLoading ? 'Sending Request...' : 'Import Repo'}
+                    </button>
+
+                    <div className="relative flex py-2 items-center">
+                        <div className="flex-grow border-t border-gray-200"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase tracking-widest">Account</span>
+                        <div className="flex-grow border-t border-gray-200"></div>
+                    </div>
+
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition duration-200"
+                    >
+                        Αποσύνδεση
+                    </button>
+                </div>
             </div>
         </div>
     );
