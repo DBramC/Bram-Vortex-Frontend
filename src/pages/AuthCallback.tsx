@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AuthCallback: React.FC = () => {
     const navigate = useNavigate();
-    const [message, setMessage] = useState('Αυθεντικοποίηση...');
+    const [message] = useState('Αυθεντικοποίηση...');
     const processed = useRef(false); // Flag για να μην τρέξει διπλά
 
     useEffect(() => {
@@ -16,13 +16,13 @@ const AuthCallback: React.FC = () => {
         if (token) {
             console.log("✅ Token βρέθηκε:", token);
             localStorage.setItem('jwt_token', token);
-            setMessage('Επιτυχία! Μετάβαση...');
+
+            document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
             // Άμεση μετάβαση χωρίς καθυστέρηση για δοκιμή
             navigate('/dashboard', { replace: true });
         } else {
             console.error("❌ Δεν βρέθηκε token στο URL");
-            setMessage('Σφάλμα: Δεν βρέθηκε token.');
             navigate('/', { replace: true });
         }
     }, [navigate]);
