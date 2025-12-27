@@ -17,8 +17,6 @@ const AuthCallback: React.FC = () => {
             console.log("✅ Token βρέθηκε:", token);
             localStorage.setItem('jwt_token', token);
 
-            document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
             // Άμεση μετάβαση χωρίς καθυστέρηση για δοκιμή
             navigate('/dashboard', { replace: true });
         } else {
