@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const AuthCallback: React.FC = () => {
     const navigate = useNavigate();
     const [message] = useState('Αυθεντικοποίηση...');
-    const processed = useRef(false); // Flag για να μην τρέξει διπλά
+    const processed = useRef(false);
 
     useEffect(() => {
         if (processed.current) return; // Αν έχει ήδη τρέξει, σταμάτα
