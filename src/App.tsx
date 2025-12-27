@@ -1,22 +1,34 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 
-// Σβήσαμε τα import για τα logos και το CSS γιατί δεν τα θέλουμε πια
+const RequireAuth = () => {
+    const token = localStorage.getItem('jwt_token');
+    const location = useLocation();
+
+    return token ? (
+        <Outlet />
+    ) : (
+        <Navigate to="/" state={{ from: location }} replace />
+    );
+};
 
 function App() {
     return (
         <Router>
             <Routes>
-                {/* Η αρχική σελίδα είναι το Login */}
+                {/* Public Routes */}
                 <Route path="/" element={<Login />} />
-
-                {/* Εδώ επιστρέφει ο χρήστης από το GitHub */}
                 <Route path="/auth-callback" element={<AuthCallback />} />
 
-                {/* Η προστατευμένη σελίδα */}
-                <Route path="/dashboard" element={<Dashboard />} />
+                {/* Protected Routes */}
+                <Route element={<RequireAuth />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                </Route>
+
+                {/* Catch All */}
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Router>
     );
