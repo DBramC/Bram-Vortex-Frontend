@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import { CodeBracketIcon } from '@heroicons/react/24/outline';
 
 // Τύποι δεδομένων
 interface Repo {
@@ -16,7 +15,6 @@ interface Repo {
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-
     const [repos, setRepos] = useState<Repo[]>([]);
     const [isLoadingRepos, setIsLoadingRepos] = useState(true);
 
@@ -90,48 +88,43 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center pt-10 px-4">
 
             {/* 1. ΤΙΤΛΟΣ */}
-            <div className="mb-8 text-center">
-                <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-                    Bram Vortex
-                </h1>
-                <p className="mt-2 text-sm text-gray-600">Repo Analyzer Dashboard</p>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">
+                Bram Vortex
+            </h1>
 
-            {/* 2. ΛΙΣΤΑ REPOS */}
-            <div className="w-full max-w-2xl bg-white shadow-lg rounded-xl overflow-hidden mb-8">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 className="text-lg font-medium text-gray-800">My Repositories</h2>
+            {/* 2. ΛΙΣΤΑ (Box) */}
+            <div className="w-full max-w-lg bg-white shadow rounded-lg overflow-hidden mb-6">
+                <div className="px-4 py-3 bg-gray-100 border-b border-gray-200">
+                    <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                        My Repositories
+                    </h2>
                 </div>
 
                 {isLoadingRepos ? (
-                    <div className="p-10 text-center">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                        <p className="mt-2 text-sm text-gray-500">Φόρτωση...</p>
-                    </div>
+                    <div className="p-6 text-center text-gray-500 text-sm">Φόρτωση...</div>
                 ) : repos.length === 0 ? (
-                    <div className="p-10 text-center text-gray-400">
-                        <CodeBracketIcon className="mx-auto h-12 w-12 text-gray-300" />
-                        <p className="mt-2 text-lg font-medium">Άδεια λίστα</p>
-                        <p className="text-sm">Δεν βρέθηκαν repositories.</p>
-                    </div>
+                    <div className="p-6 text-center text-gray-500 text-sm">Άδεια λίστα (Δεν βρέθηκαν repositories)</div>
                 ) : (
                     <ul className="divide-y divide-gray-100">
                         {repos.map((repo) => (
-                            <li key={repo.id} className="group p-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-150">
-                                <div className="flex flex-col">
-                                    <span className="text-base font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
+                            <li key={repo.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                                {/* Όνομα Repo */}
+                                <div className="truncate pr-4">
+                                    <span className="block text-sm font-medium text-gray-900 truncate">
                                         {repo.name}
                                     </span>
-                                    <span className="text-xs text-gray-500">
-                                        {repo.private ? 'Private' : 'Public'} • {repo.language || 'N/A'}
+                                    <span className="block text-xs text-gray-500">
+                                        {repo.language || 'No language'}
                                     </span>
                                 </div>
+
+                                {/* Κουμπί Analyze */}
                                 <button
                                     onClick={() => handleOpenAnalyzeModal(repo)}
-                                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                                    className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-1.5 px-3 rounded"
                                 >
                                     Analyze
                                 </button>
@@ -141,34 +134,34 @@ const Dashboard: React.FC = () => {
                 )}
             </div>
 
-            {/* 3. ΚΟΥΜΠΙ ΑΠΟΣΥΝΔΕΣΗΣ (Κάτω από τη λίστα, μικρό) */}
+            {/* 3. ΚΟΥΜΠΙ ΑΠΟΣΥΝΔΕΣΗΣ (Μικρό Link στο τέλος) */}
             <button
                 onClick={handleLogout}
-                className="text-sm font-medium text-gray-500 hover:text-red-600 hover:underline transition-colors focus:outline-none"
+                className="text-sm text-gray-400 hover:text-red-500 transition-colors underline"
             >
                 Αποσύνδεση
             </button>
 
-            {/* --- MODAL (Ίδιο με πριν) --- */}
+            {/* --- MODAL --- */}
             {isModalOpen && selectedRepo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Επιβεβαίωση</h3>
-                        <p className="text-gray-600 mb-6 text-sm">
-                            Θέλετε να ξεκινήσει η ανάλυση για το <strong>{selectedRepo.name}</strong>;
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-40 backdrop-blur-sm">
+                    <div className="bg-white rounded shadow-lg max-w-sm w-full p-5">
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Επιβεβαίωση</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            Έναρξη ανάλυσης για το <strong>{selectedRepo.name}</strong>;
                         </p>
-                        <div className="flex justify-end space-x-3">
+                        <div className="flex justify-end gap-3">
                             <button
                                 onClick={handleCloseModal}
                                 disabled={isAnalyzing}
-                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg"
+                                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded border border-gray-200"
                             >
                                 Ακύρωση
                             </button>
                             <button
                                 onClick={handleConfirmAnalysis}
                                 disabled={isAnalyzing}
-                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50"
+                                className="px-3 py-1.5 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded"
                             >
                                 {isAnalyzing ? '...' : 'Εκκίνηση'}
                             </button>
