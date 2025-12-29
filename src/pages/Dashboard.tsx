@@ -1,10 +1,10 @@
-import  { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { CircleUser, Code, ChevronRight, LogOut, Loader2 } from 'lucide-react';
 
 // ----------------------------------------------------------------------
-// 1. ΤΥΠΟΙ ΔΕΔΟΜΕΝΩΝ
+// 1. DATA TYPES
 // ----------------------------------------------------------------------
 interface Repo {
     id: number;
@@ -19,18 +19,17 @@ interface Repo {
 export default function Dashboard() {
     const navigate = useNavigate();
 
-    // --- STATE ---
+    // ----------------------------------------------------------------------
+    // 2. STATE & LOGIC (Η ΔΙΚΗ ΣΟΥ ΛΕΙΤΟΥΡΓΙΚΟΤΗΤΑ)
+    // ----------------------------------------------------------------------
     const [repos, setRepos] = useState<Repo[]>([]);
     const [username, setUsername] = useState<string>("User");
     const [isLoadingRepos, setIsLoadingRepos] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    // Χρησιμοποιούμε το ID για να ξέρουμε ποιο έχει επιλεγεί (για το scale effect)
+    // Χρησιμοποιούμε το ID για να ξέρουμε ποιο έχει επιλεγεί (για το Figma scale effect)
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
 
-    // ----------------------------------------------------------------------
-    // LOGIC (API & AUTH)
-    // ----------------------------------------------------------------------
     useEffect(() => {
         const token = localStorage.getItem('jwt_token');
         if (!token) {
@@ -89,7 +88,7 @@ export default function Dashboard() {
     };
 
     // ----------------------------------------------------------------------
-    // RENDERING (FIGMA DESIGN + REAL DATA)
+    // 3. RENDERING (ΤΟ DESIGN ΤΟΥ FIGMA EXACT MATCH)
     // ----------------------------------------------------------------------
     return (
         <div className="min-h-screen flex flex-col items-center px-4 py-6" style={{ backgroundColor: '#1a1a1a' }}>
@@ -114,11 +113,13 @@ export default function Dashboard() {
                  style={{ backgroundColor: '#2d2d2d' }}>
 
                 {isLoadingRepos ? (
+                    // Loading State μέσα στο στυλ του Figma
                     <div className="p-8 text-center" style={{ color: '#9ca3af' }}>
                         <Loader2 className="animate-spin mx-auto mb-2" color="#6366f1" />
                         <p>Loading repositories...</p>
                     </div>
                 ) : repos.length === 0 ? (
+                    // Empty State μέσα στο στυλ του Figma
                     <div className="p-8 text-center" style={{ color: '#9ca3af' }}>
                         <p>No repositories found.</p>
                     </div>
@@ -166,7 +167,7 @@ export default function Dashboard() {
                                                 className="flex-1 px-2 py-1.5 rounded-lg transition-opacity hover:opacity-80"
                                                 style={{ backgroundColor: '#2d2d2d', color: '#e5e5e5', fontSize: '0.875rem' }}
                                                 onClick={(e) => {
-                                                    e.stopPropagation();
+                                                    e.stopPropagation(); // Σταματάμε το κλικ να κλείσει το card
                                                     setSelectedRepoId(null);
                                                 }}
                                             >
@@ -188,6 +189,7 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Separator - don't show after last item */}
+                                {/* Η λογική εδώ: Να μην φαίνεται διαχωριστικό αν είναι το τελευταίο ή αν το τρέχον/επόμενο είναι ανοιχτό */}
                                 {index < repos.length - 1 && !isSelected && selectedRepoId !== repos[index + 1]?.id && (
                                     <div className="mx-4" style={{ height: '1px', backgroundColor: '#404040' }} />
                                 )}
@@ -202,10 +204,10 @@ export default function Dashboard() {
                 <button
                     className="w-full px-4 py-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:border-red-500"
                     style={{ backgroundColor: '#2d2d2d', border: '1px solid #404040' }}
+                    // Εδώ κρατάμε το DOM manipulation του Figma για το hover effect
                     onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = '#3d1f1f';
                         e.currentTarget.style.borderColor = '#ef4444';
-                        // DOM manipulation to match Figma code behavior precisely
                         const icon = e.currentTarget.querySelector('svg');
                         const text = e.currentTarget.querySelector('span');
                         if (icon) icon.style.color = '#ef4444';
@@ -216,8 +218,8 @@ export default function Dashboard() {
                         e.currentTarget.style.borderColor = '#404040';
                         const icon = e.currentTarget.querySelector('svg');
                         const text = e.currentTarget.querySelector('span');
-                        if (icon) icon.style.color = '#ef4444'; // Keep icon red
-                        if (text) text.style.color = 'white';   // Reset text
+                        if (icon) icon.style.color = '#ef4444'; // Κρατάμε το εικονίδιο κόκκινο
+                        if (text) text.style.color = 'white';   // Επαναφορά κειμένου σε λευκό
                     }}
                     onClick={handleLogout}
                 >
