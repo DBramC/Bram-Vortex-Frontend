@@ -17,48 +17,24 @@ interface Repo {
 }
 
 // ----------------------------------------------------------------------
-// 2. DUMMY DATA (ΓΙΑ ΝΑ ΒΛΕΠΕΙΣ ΤΟ DESIGN)
-// ----------------------------------------------------------------------
-const DUMMY_REPOS: Repo[] = [
-    {
-        id: 101,
-        name: "vortex-ui-kit",
-        full_name: "christos/vortex-ui-kit",
-        html_url: "#",
-        description: "A modern UI library for React applications.",
-        language: "TypeScript",
-        private: false // Public
-    },
-    {
-        id: 102,
-        name: "api-gateway-service",
-        full_name: "christos/api-gateway-service",
-        html_url: "#",
-        description: "Main entry point for the microservices architecture.",
-        language: "Go",
-        private: true // Private
-    }
-];
-
-// ----------------------------------------------------------------------
-// 3. COMPONENT DASHBOARD
+// 2. COMPONENT DASHBOARD
 // ----------------------------------------------------------------------
 export default function Dashboard() {
     const navigate = useNavigate();
 
-    // Αρχικοποιούμε το state με τα DUMMY_REPOS για να φαίνονται αμέσως
-    const [repos, setRepos] = useState<Repo[]>(DUMMY_REPOS);
+    // Αρχικοποιούμε με άδεια λίστα, καθώς δεν υπάρχουν πια dummy data
+    const [repos, setRepos] = useState<Repo[]>([]);
     const [username, setUsername] = useState<string>("User");
 
-    // Ξεκινάμε με false για να δείξουμε τα dummy data κατευθείαν (μέχρι να απαντήσει το API)
-    const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+    // Ξεκινάμε με true για να δείξουμε το Spinner μέχρι να απαντήσει το API
+    const [isLoadingRepos, setIsLoadingRepos] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     // --- STATE DESIGN ---
     const [expandedRepoId, setExpandedRepoId] = useState<number | null>(null);
 
     // ----------------------------------------------------------------------
-    // 4. EFFECTS & LOGIC
+    // 3. EFFECTS & LOGIC
     // ----------------------------------------------------------------------
 
     useEffect(() => {
@@ -83,17 +59,14 @@ export default function Dashboard() {
             setIsLoadingRepos(true);
             const response = await api.get<Repo[]>('/dashboard/repos');
 
-            // Αν το API φέρει δεδομένα, τα δείχνουμε.
-            // Αν φέρει άδεια λίστα, κρατάμε τα DUMMY για να μη χαλάσει το design σου.
-            if (Array.isArray(response.data) && response.data.length > 0) {
+            if (Array.isArray(response.data)) {
                 setRepos(response.data);
             } else {
-                console.log("API returned empty, keeping dummy data.");
-                setRepos(DUMMY_REPOS);
+                setRepos([]); // Αν δεν είναι πίνακας, αδειάζουμε τη λίστα
             }
         } catch (error) {
-            console.error("Failed to fetch repos, using dummy data", error);
-            setRepos(DUMMY_REPOS); // Fallback σε περίπτωση λάθους
+            console.error("Failed to fetch repos", error);
+            setRepos([]); // Σε περίπτωση λάθους, αδειάζουμε τη λίστα
         } finally {
             setIsLoadingRepos(false);
         }
@@ -125,7 +98,7 @@ export default function Dashboard() {
     };
 
     // ----------------------------------------------------------------------
-    // 5. RENDERING
+    // 4. RENDERING
     // ----------------------------------------------------------------------
     return (
         <div className="min-h-screen flex flex-col items-center px-4 py-6 font-sans" style={{ backgroundColor: '#1a1a1a' }}>
