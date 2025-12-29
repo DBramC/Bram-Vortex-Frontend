@@ -1,18 +1,41 @@
 @import "tailwindcss";
 
-/* Βασικό Reset */
+/* --- ΟΡΙΣΜΟΣ ΘΕΜΑΤΟΣ ΓΙΑ TAILWIND v4 --- */
+@theme {
+    /* Εδώ δηλώνουμε τα χρώματα ώστε να τα βλέπει το Tailwind */
+    --color-background: #1a1a1a;
+    --color-foreground: #ffffff;
+
+    --color-card: #2d2d2d;
+    --color-card-border: #404040;
+
+    --color-primary: #6366f1; /* Indigo */
+    --color-danger: #ef4444;  /* Red */
+
+    /* Sidebar Specifics (αν χρειάζονται) */
+    --color-sidebar: #1a1a1a;
+}
+
+/* --- ΒΑΣΙΚΑ STYLES (RESET) --- */
 :root {
     font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
     line-height: 1.5;
     font-weight: 400;
 
-    /* Σιγουρεύουμε ότι το background είναι σκούρο από πίσω */
-    background-color: #1a1a1a;
-    color: #ffffff;
+    /* Εφαρμογή των μεταβλητών */
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+}
+
+/* Fix για να πιάνει όλο το ύψος */
+html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-    margin: 0;
     min-width: 320px;
     min-height: 100vh;
 }
