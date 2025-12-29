@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { VariantProps, cva } from "class-variance-authority";
+import { type VariantProps, cva } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 
 import { useIsMobile } from "./use-mobile";
@@ -600,41 +600,44 @@ function SidebarMenuBadge({
 }
 
 function SidebarMenuSkeleton({
-  className,
-  showIcon = false,
-  ...props
-}: React.ComponentProps<"div"> & {
-  showIcon?: boolean;
+                                 className,
+                                 showIcon = false,
+                                 ...props
+                             }: React.ComponentProps<"div"> & {
+    showIcon?: boolean;
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+    // 1. Initialize with a deterministic value (e.g., "50%") to avoid hydration mismatch
+    const [width, setWidth] = React.useState("50%");
 
-  return (
-    <div
-      data-slot="sidebar-menu-skeleton"
-      data-sidebar="menu-skeleton"
-      className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
-      {...props}
-    >
-      {showIcon && (
-        <Skeleton
-          className="size-4 rounded-md"
-          data-sidebar="menu-skeleton-icon"
-        />
-      )}
-      <Skeleton
-        className="h-4 max-w-(--skeleton-width) flex-1"
-        data-sidebar="menu-skeleton-text"
-        style={
-          {
-            "--skeleton-width": width,
-          } as React.CSSProperties
-        }
-      />
-    </div>
-  );
+    // 2. Calculate the random width inside useEffect (runs only on client)
+    React.useEffect(() => {
+        setWidth(`${Math.floor(Math.random() * 40) + 50}%`);
+    }, []);
+
+    return (
+        <div
+            data-slot="sidebar-menu-skeleton"
+            data-sidebar="menu-skeleton"
+            className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
+            {...props}
+        >
+            {showIcon && (
+                <Skeleton
+                    className="size-4 rounded-md"
+                    data-sidebar="menu-skeleton-icon"
+                />
+            )}
+            <Skeleton
+                className="h-4 max-w-(--skeleton-width) flex-1"
+                data-sidebar="menu-skeleton-text"
+                style={
+                    {
+                        "--skeleton-width": width,
+                    } as React.CSSProperties
+                }
+            />
+        </div>
+    );
 }
 
 function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
@@ -722,5 +725,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+    // eslint-disable-next-line react-refresh/only-export-components
   useSidebar,
 };
