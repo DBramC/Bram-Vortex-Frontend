@@ -43,13 +43,22 @@ const Dashboard: React.FC = () => {
     const fetchRepositories = async () => {
         try {
             setIsLoadingRepos(true);
-            // Κλήση στο Endpoint 1 που φτιάξαμε στο Spring Boot
-            // ΠΡΟΣΟΧΗ: Βεβαιώσου ότι το path ταιριάζει με το Controller σου (/dashboard/repos)
             const response = await api.get<Repo[]>('/dashboard/repos');
-            setRepos(response.data);
+
+            // --- ΠΡΟΣΘΗΚΗ ΕΛΕΓΧΟΥ ---
+            // Ελέγχουμε αν αυτό που ήρθε είναι πραγματικά πίνακας (Array)
+            if (Array.isArray(response.data)) {
+                setRepos(response.data);
+            } else {
+                console.error("Unexpected response format:", response.data);
+                // Αν δεν είναι πίνακας, πιθανόν είναι HTML από redirect.
+                // Μπορούμε να αδειάσουμε τη λίστα για να μην σκάσει το UI.
+                setRepos([]);
+            }
+            // ------------------------
+
         } catch (error) {
             console.error("Failed to fetch repos:", error);
-            alert("Αποτυχία φόρτωσης repositories.");
         } finally {
             setIsLoadingRepos(false);
         }

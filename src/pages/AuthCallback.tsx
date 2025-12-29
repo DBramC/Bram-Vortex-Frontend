@@ -14,7 +14,6 @@ const AuthCallback: React.FC = () => {
         const token = params.get('token');
 
         if (token) {
-            console.log("✅ Token βρέθηκε:", token);
             localStorage.setItem('jwt_token', token);
 
             // Άμεση μετάβαση χωρίς καθυστέρηση για δοκιμή
