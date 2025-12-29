@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import { UserCircleIcon, CodeBracketIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { CircleUser, Code, ChevronRight, LogOut, Loader2 } from 'lucide-react';
 
+// ----------------------------------------------------------------------
+// 1. ΤΥΠΟΙ ΔΕΔΟΜΕΝΩΝ
+// ----------------------------------------------------------------------
 interface Repo {
     id: number;
     name: string;
@@ -13,27 +16,50 @@ interface Repo {
     private: boolean;
 }
 
-// DUMMY ENTRY ΓΙΑ ΝΑ ΒΛΕΠΕΙΣ ΤΟ DESIGN (Αν δεν υπάρχουν repos)
-const DUMMY_REPO: Repo = {
-    id: 9999,
-    name: "demo-vortex-project",
-    full_name: "christos/demo-vortex-project",
-    html_url: "#",
-    description: "Αυτό είναι ένα δοκιμαστικό repository για να δεις το design.",
-    language: "Java",
-    private: true
-};
+// ----------------------------------------------------------------------
+// 2. DUMMY DATA (ΓΙΑ ΝΑ ΒΛΕΠΕΙΣ ΤΟ DESIGN)
+// ----------------------------------------------------------------------
+const DUMMY_REPOS: Repo[] = [
+    {
+        id: 101,
+        name: "vortex-ui-kit",
+        full_name: "christos/vortex-ui-kit",
+        html_url: "#",
+        description: "A modern UI library for React applications.",
+        language: "TypeScript",
+        private: false // Public
+    },
+    {
+        id: 102,
+        name: "api-gateway-service",
+        full_name: "christos/api-gateway-service",
+        html_url: "#",
+        description: "Main entry point for the microservices architecture.",
+        language: "Go",
+        private: true // Private
+    }
+];
 
-const Dashboard: React.FC = () => {
+// ----------------------------------------------------------------------
+// 3. COMPONENT DASHBOARD
+// ----------------------------------------------------------------------
+export default function Dashboard() {
     const navigate = useNavigate();
-    const [repos, setRepos] = useState<Repo[]>([]);
-    const [username, setUsername] = useState<string>(""); // State για το όνομα χρήστη
-    const [isLoadingRepos, setIsLoadingRepos] = useState(true);
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);
+    // Αρχικοποιούμε το state με τα DUMMY_REPOS για να φαίνονται αμέσως
+    const [repos, setRepos] = useState<Repo[]>(DUMMY_REPOS);
+    const [username, setUsername] = useState<string>("User");
+
+    // Ξεκινάμε με false για να δείξουμε τα dummy data κατευθείαν (μέχρι να απαντήσει το API)
+    const [isLoadingRepos, setIsLoadingRepos] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    // --- STATE DESIGN ---
+    const [expandedRepoId, setExpandedRepoId] = useState<number | null>(null);
+
+    // ----------------------------------------------------------------------
+    // 4. EFFECTS & LOGIC
+    // ----------------------------------------------------------------------
 
     useEffect(() => {
         const token = localStorage.getItem('jwt_token');
@@ -42,11 +68,9 @@ const Dashboard: React.FC = () => {
             return;
         }
 
-        // 1. Αποκωδικοποίηση του Username από το JWT (χωρίς εξωτερική βιβλιοθήκη)
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            // Αν το backend στέλνει το username στο 'sub' ή σε custom field 'username'
-            setUsername(payload.sub || payload.username || "Unknown User");
+            setUsername(payload.sub || payload.username || "User");
         } catch (e) {
             console.error("Error decoding token", e);
         }
@@ -58,16 +82,18 @@ const Dashboard: React.FC = () => {
         try {
             setIsLoadingRepos(true);
             const response = await api.get<Repo[]>('/dashboard/repos');
+
+            // Αν το API φέρει δεδομένα, τα δείχνουμε.
+            // Αν φέρει άδεια λίστα, κρατάμε τα DUMMY για να μη χαλάσει το design σου.
             if (Array.isArray(response.data) && response.data.length > 0) {
                 setRepos(response.data);
             } else {
-                // Αν είναι άδεια, βάζουμε το DUMMY για να δεις το design
-                setRepos([DUMMY_REPO]);
+                console.log("API returned empty, keeping dummy data.");
+                setRepos(DUMMY_REPOS);
             }
         } catch (error) {
-            console.error("Failed to fetch repos", error);
-            // Σε περίπτωση λάθους, δείχνουμε το dummy για να μην είναι κενό
-            setRepos([DUMMY_REPO]);
+            console.error("Failed to fetch repos, using dummy data", error);
+            setRepos(DUMMY_REPOS); // Fallback σε περίπτωση λάθους
         } finally {
             setIsLoadingRepos(false);
         }
@@ -78,132 +104,167 @@ const Dashboard: React.FC = () => {
         navigate('/', { replace: true });
     };
 
-    // Όταν κάνεις κλικ σε ΟΛΗ την κάρτα
-    const handleCardClick = (repo: Repo) => {
-        setSelectedRepo(repo);
-        setIsModalOpen(true);
-    };
-
-    const handleConfirmAnalysis = async () => {
-        if (!selectedRepo) return;
+    const handleConfirmAnalysis = async (repo: Repo) => {
         try {
             setIsAnalyzing(true);
             const requestBody = {
-                repoId: selectedRepo.id,
-                repoName: selectedRepo.name,
-                repoUrl: selectedRepo.html_url
+                repoId: repo.id,
+                repoName: repo.name,
+                repoUrl: repo.html_url
             };
             const response = await api.post('/dashboard/analyze', requestBody);
-            setIsModalOpen(false);
+
+            setExpandedRepoId(null);
             alert(`✅ Η ανάλυση ξεκίνησε!\nJob ID: ${response.data}`);
         } catch (error) {
             console.error("Analysis failed:", error);
             alert("❌ Σφάλμα: Η ανάλυση δεν μπόρεσε να ξεκινήσει.");
         } finally {
             setIsAnalyzing(false);
-            setSelectedRepo(null);
         }
     };
 
+    // ----------------------------------------------------------------------
+    // 5. RENDERING
+    // ----------------------------------------------------------------------
     return (
-        <div className="min-h-screen bg-[#1a1a1a] text-gray-100 flex flex-col items-center py-10 px-4 relative font-sans">
+        <div className="min-h-screen flex flex-col items-center px-4 py-6 font-sans" style={{ backgroundColor: '#1a1a1a' }}>
 
-            {/* 1. USER INFO (Πάνω Αριστερά) */}
-            <div className="absolute top-6 left-6 flex items-center space-x-2 text-gray-400 bg-[#2d2d2d] px-4 py-2 rounded-full shadow-md border border-gray-700">
-                <UserCircleIcon className="h-6 w-6 text-indigo-400" />
-                <span className="text-sm font-medium tracking-wide">{username}</span>
+            {/* --- USER PILL --- */}
+            <div className="w-full max-w-md mb-8 flex justify-start">
+                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border shadow-sm"
+                     style={{ backgroundColor: '#2d2d2d', borderColor: '#404040' }}>
+                    <CircleUser size={20} color="#e5e5e5" />
+                    <span style={{ color: '#e5e5e5', fontSize: '0.9rem', fontWeight: 500 }}>{username}</span>
+                </div>
             </div>
 
-            {/* 2. ΤΙΤΛΟΣ */}
-            <div className="mt-12 mb-8 text-center">
-                <h1 className="text-4xl font-bold text-white tracking-tight">
-                    Bram Vortex
-                </h1>
-                <p className="mt-2 text-sm text-gray-500">My Repositories</p>
+            {/* --- HEADER --- */}
+            <div className="text-center mb-8">
+                <h1 className="text-white mb-2 font-bold tracking-tight" style={{ fontSize: '2.5rem' }}>Bram Vortex</h1>
+                <p style={{ color: '#9ca3af' }}>My Repositories</p>
             </div>
 
-            {/* 3. ΛΙΣΤΑ (Box ίδιο στυλ με το Logout button) */}
-            {/* Χρησιμοποιούμε bg-[#2d2d2d] που είναι σκούρο γκρι, όπως στις εικόνες */}
-            <div className="w-full max-w-md bg-[#2d2d2d] border border-gray-700 rounded-2xl p-4 shadow-xl mb-6">
+            {/* --- REPOSITORY LIST CARD --- */}
+            <div className="w-full max-w-md mb-4 rounded-xl overflow-visible"
+                 style={{ backgroundColor: '#2d2d2d' }}>
 
                 {isLoadingRepos ? (
-                    <div className="py-8 text-center text-gray-500 animate-pulse">Φόρτωση...</div>
+                    <div className="p-8 text-center" style={{ color: '#9ca3af' }}>
+                        <Loader2 className="animate-spin mx-auto mb-2" color="#6366f1" />
+                        <p>Loading repositories...</p>
+                    </div>
+                ) : repos.length === 0 ? (
+                    <div className="p-8 text-center" style={{ color: '#9ca3af' }}>
+                        <p>No repositories found.</p>
+                    </div>
                 ) : (
-                    <div className="space-y-3">
-                        {repos.map((repo) => (
-                            // 4. REPO CARD (Καρτέλα)
-                            <div
-                                key={repo.id}
-                                onClick={() => handleCardClick(repo)}
-                                className="group cursor-pointer bg-[#383838] hover:bg-[#454545] border border-gray-600 hover:border-indigo-500 rounded-xl p-4 transition-all duration-200 ease-in-out transform hover:-translate-y-1 shadow-sm flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-3 overflow-hidden">
-                                    <div className="bg-gray-700 p-2 rounded-lg group-hover:bg-indigo-600 transition-colors">
-                                        <CodeBracketIcon className="h-5 w-5 text-gray-300 group-hover:text-white" />
-                                    </div>
-                                    <div className="flex flex-col truncate">
-                                        <span className="text-base font-semibold text-gray-100 truncate group-hover:text-white">
-                                            {repo.name}
-                                        </span>
-                                        <span className="text-xs text-gray-400 group-hover:text-gray-300">
-                                            {repo.language || 'Unknown'} • {repo.private ? 'Private' : 'Public'}
-                                        </span>
-                                    </div>
+                    repos.map((repo, index) => {
+                        const isExpanded = expandedRepoId === repo.id;
+
+                        return (
+                            <div key={repo.id} className="relative" style={isExpanded ? { zIndex: 10 } : undefined}>
+                                <div
+                                    className="transition-all duration-300 ease-in-out"
+                                    style={isExpanded ? {
+                                        backgroundColor: '#3d3d3d',
+                                        transform: 'scale(1.05)',
+                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.7)',
+                                        borderRadius: '12px',
+                                        margin: '10px 0'
+                                    } : undefined}
+                                >
+                                    <button
+                                        className="w-full px-4 py-4 flex items-center gap-4 hover:opacity-90 transition-opacity"
+                                        onClick={() => setExpandedRepoId(isExpanded ? null : repo.id)}
+                                    >
+                                        {/* Icon Container */}
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
+                                             style={{ backgroundColor: '#1a1a1a' }}>
+                                            <Code size={20} color={isExpanded ? "#818cf8" : "#6366f1"} />
+                                        </div>
+
+                                        {/* Repository Info */}
+                                        <div className="flex-1 text-left overflow-hidden">
+                                            <div className="text-white font-medium truncate">{repo.name}</div>
+                                            <div className="text-xs truncate" style={{ color: '#9ca3af' }}>
+                                                {repo.language || 'Unknown'} • {repo.private ? 'Private' : 'Public'}
+                                            </div>
+                                        </div>
+
+                                        {/* Chevron */}
+                                        <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
+                                            <ChevronRight size={20} color="#6366f1" />
+                                        </div>
+                                    </button>
+
+                                    {/* Action Buttons */}
+                                    {isExpanded && (
+                                        <div className="px-4 pb-4 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <button
+                                                className="flex-1 px-2 py-2 rounded-lg transition-colors hover:bg-opacity-80 font-medium"
+                                                style={{ backgroundColor: '#2d2d2d', color: '#e5e5e5', fontSize: '0.875rem' }}
+                                                onClick={() => setExpandedRepoId(null)}
+                                                disabled={isAnalyzing}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                className="flex-1 px-2 py-2 rounded-lg transition-colors hover:bg-opacity-90 font-medium flex justify-center items-center gap-2"
+                                                style={{ backgroundColor: '#6366f1', color: 'white', fontSize: '0.875rem' }}
+                                                onClick={() => handleConfirmAnalysis(repo)}
+                                                disabled={isAnalyzing}
+                                            >
+                                                {isAnalyzing ? (
+                                                    <>
+                                                        <Loader2 size={16} className="animate-spin" />
+                                                        Processing...
+                                                    </>
+                                                ) : (
+                                                    'Confirm'
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Βελάκι που εμφανίζεται στο hover */}
-                                <div className="text-gray-500 group-hover:text-indigo-400 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                    </svg>
-                                </div>
+                                {/* Separator */}
+                                {index < repos.length - 1 && !isExpanded && expandedRepoId !== repos[index + 1].id && (
+                                    <div className="mx-4" style={{ height: '1px', backgroundColor: '#404040' }} />
+                                )}
                             </div>
-                        ))}
-                    </div>
+                        );
+                    })
                 )}
             </div>
 
-            {/* 5. ΚΟΥΜΠΙ ΑΠΟΣΥΝΔΕΣΗΣ (Ίδιο στυλ με τη λίστα) */}
-            <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 bg-[#2d2d2d] hover:bg-red-900/30 border border-gray-700 hover:border-red-500/50 text-gray-300 hover:text-red-400 px-6 py-3 rounded-xl transition-all duration-200 shadow-lg"
-            >
-                <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                <span className="font-medium">Αποσύνδεση</span>
-            </button>
-
-            {/* --- DARK MODAL --- */}
-            {isModalOpen && selectedRepo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm">
-                    <div className="bg-[#2d2d2d] border border-gray-600 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in-up">
-                        <h3 className="text-xl font-bold text-white mb-2 text-center">Επιβεβαίωση</h3>
-                        <p className="text-gray-400 mb-8 text-center text-sm leading-relaxed">
-                            Θέλεις να ξεκινήσει η ανάλυση κώδικα για το repository <br/>
-                            <span className="text-indigo-400 font-semibold">{selectedRepo.name}</span>;
-                        </p>
-
-                        <div className="flex flex-col space-y-3">
-                            <button
-                                onClick={handleConfirmAnalysis}
-                                disabled={isAnalyzing}
-                                className="w-full py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isAnalyzing ? 'Εκκίνηση...' : 'ΝΑΙ, Ξεκίνα την ανάλυση'}
-                            </button>
-
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                disabled={isAnalyzing}
-                                className="w-full py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-700 rounded-xl transition-colors"
-                            >
-                                Ακύρωση
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* --- LOGOUT BUTTON --- */}
+            <div className="w-full max-w-md mt-auto mb-4">
+                <button
+                    className="w-full px-4 py-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300"
+                    style={{ backgroundColor: '#2d2d2d', border: '1px solid #404040' }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#3d1f1f';
+                        e.currentTarget.style.borderColor = '#ef4444';
+                        const icon = e.currentTarget.querySelector('svg');
+                        const text = e.currentTarget.querySelector('span');
+                        if (icon) icon.style.color = '#ef4444';
+                        if (text) text.style.color = '#ef4444';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#2d2d2d';
+                        e.currentTarget.style.borderColor = '#404040';
+                        const icon = e.currentTarget.querySelector('svg');
+                        const text = e.currentTarget.querySelector('span');
+                        if (icon) icon.style.color = '#ef4444';
+                        if (text) text.style.color = 'white';
+                    }}
+                    onClick={handleLogout}
+                >
+                    <LogOut size={20} color="#ef4444" />
+                    <span className="text-white font-medium transition-colors">Logout</span>
+                </button>
+            </div>
         </div>
     );
-};
-
-export default Dashboard;
+}
