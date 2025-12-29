@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
+import { UserCircleIcon, CodeBracketIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
-// Τύποι δεδομένων
 interface Repo {
     id: number;
     name: string;
@@ -13,39 +13,61 @@ interface Repo {
     private: boolean;
 }
 
+// DUMMY ENTRY ΓΙΑ ΝΑ ΒΛΕΠΕΙΣ ΤΟ DESIGN (Αν δεν υπάρχουν repos)
+const DUMMY_REPO: Repo = {
+    id: 9999,
+    name: "demo-vortex-project",
+    full_name: "christos/demo-vortex-project",
+    html_url: "#",
+    description: "Αυτό είναι ένα δοκιμαστικό repository για να δεις το design.",
+    language: "Java",
+    private: true
+};
+
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [repos, setRepos] = useState<Repo[]>([]);
+    const [username, setUsername] = useState<string>(""); // State για το όνομα χρήστη
     const [isLoadingRepos, setIsLoadingRepos] = useState(true);
 
-    // State για Modal
+    // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    // Έλεγχος Login
     useEffect(() => {
         const token = localStorage.getItem('jwt_token');
-        if (!token) navigate('/', { replace: true });
-    }, [navigate]);
+        if (!token) {
+            navigate('/', { replace: true });
+            return;
+        }
 
-    // Φόρτωση Repos
-    useEffect(() => {
+        // 1. Αποκωδικοποίηση του Username από το JWT (χωρίς εξωτερική βιβλιοθήκη)
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            // Αν το backend στέλνει το username στο 'sub' ή σε custom field 'username'
+            setUsername(payload.sub || payload.username || "Unknown User");
+        } catch (e) {
+            console.error("Error decoding token", e);
+        }
+
         fetchRepositories();
-    }, []);
+    }, [navigate]);
 
     const fetchRepositories = async () => {
         try {
             setIsLoadingRepos(true);
             const response = await api.get<Repo[]>('/dashboard/repos');
-            if (Array.isArray(response.data)) {
+            if (Array.isArray(response.data) && response.data.length > 0) {
                 setRepos(response.data);
             } else {
-                setRepos([]);
+                // Αν είναι άδεια, βάζουμε το DUMMY για να δεις το design
+                setRepos([DUMMY_REPO]);
             }
         } catch (error) {
             console.error("Failed to fetch repos", error);
-            setRepos([]);
+            // Σε περίπτωση λάθους, δείχνουμε το dummy για να μην είναι κενό
+            setRepos([DUMMY_REPO]);
         } finally {
             setIsLoadingRepos(false);
         }
@@ -56,14 +78,10 @@ const Dashboard: React.FC = () => {
         navigate('/', { replace: true });
     };
 
-    const handleOpenAnalyzeModal = (repo: Repo) => {
+    // Όταν κάνεις κλικ σε ΟΛΗ την κάρτα
+    const handleCardClick = (repo: Repo) => {
         setSelectedRepo(repo);
         setIsModalOpen(true);
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setSelectedRepo(null);
     };
 
     const handleConfirmAnalysis = async () => {
@@ -88,82 +106,97 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center pt-10 px-4">
+        <div className="min-h-screen bg-[#1a1a1a] text-gray-100 flex flex-col items-center py-10 px-4 relative font-sans">
 
-            {/* 1. ΤΙΤΛΟΣ */}
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">
-                Bram Vortex
-            </h1>
+            {/* 1. USER INFO (Πάνω Αριστερά) */}
+            <div className="absolute top-6 left-6 flex items-center space-x-2 text-gray-400 bg-[#2d2d2d] px-4 py-2 rounded-full shadow-md border border-gray-700">
+                <UserCircleIcon className="h-6 w-6 text-indigo-400" />
+                <span className="text-sm font-medium tracking-wide">{username}</span>
+            </div>
 
-            {/* 2. ΛΙΣΤΑ (Box) */}
-            <div className="w-full max-w-lg bg-white shadow rounded-lg overflow-hidden mb-6">
-                <div className="px-4 py-3 bg-gray-100 border-b border-gray-200">
-                    <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                        My Repositories
-                    </h2>
-                </div>
+            {/* 2. ΤΙΤΛΟΣ */}
+            <div className="mt-12 mb-8 text-center">
+                <h1 className="text-4xl font-bold text-white tracking-tight">
+                    Bram Vortex
+                </h1>
+                <p className="mt-2 text-sm text-gray-500">My Repositories</p>
+            </div>
+
+            {/* 3. ΛΙΣΤΑ (Box ίδιο στυλ με το Logout button) */}
+            {/* Χρησιμοποιούμε bg-[#2d2d2d] που είναι σκούρο γκρι, όπως στις εικόνες */}
+            <div className="w-full max-w-md bg-[#2d2d2d] border border-gray-700 rounded-2xl p-4 shadow-xl mb-6">
 
                 {isLoadingRepos ? (
-                    <div className="p-6 text-center text-gray-500 text-sm">Φόρτωση...</div>
-                ) : repos.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500 text-sm">Άδεια λίστα (Δεν βρέθηκαν repositories)</div>
+                    <div className="py-8 text-center text-gray-500 animate-pulse">Φόρτωση...</div>
                 ) : (
-                    <ul className="divide-y divide-gray-100">
+                    <div className="space-y-3">
                         {repos.map((repo) => (
-                            <li key={repo.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                                {/* Όνομα Repo */}
-                                <div className="truncate pr-4">
-                                    <span className="block text-sm font-medium text-gray-900 truncate">
-                                        {repo.name}
-                                    </span>
-                                    <span className="block text-xs text-gray-500">
-                                        {repo.language || 'No language'}
-                                    </span>
+                            // 4. REPO CARD (Καρτέλα)
+                            <div
+                                key={repo.id}
+                                onClick={() => handleCardClick(repo)}
+                                className="group cursor-pointer bg-[#383838] hover:bg-[#454545] border border-gray-600 hover:border-indigo-500 rounded-xl p-4 transition-all duration-200 ease-in-out transform hover:-translate-y-1 shadow-sm flex items-center justify-between"
+                            >
+                                <div className="flex items-center space-x-3 overflow-hidden">
+                                    <div className="bg-gray-700 p-2 rounded-lg group-hover:bg-indigo-600 transition-colors">
+                                        <CodeBracketIcon className="h-5 w-5 text-gray-300 group-hover:text-white" />
+                                    </div>
+                                    <div className="flex flex-col truncate">
+                                        <span className="text-base font-semibold text-gray-100 truncate group-hover:text-white">
+                                            {repo.name}
+                                        </span>
+                                        <span className="text-xs text-gray-400 group-hover:text-gray-300">
+                                            {repo.language || 'Unknown'} • {repo.private ? 'Private' : 'Public'}
+                                        </span>
+                                    </div>
                                 </div>
 
-                                {/* Κουμπί Analyze */}
-                                <button
-                                    onClick={() => handleOpenAnalyzeModal(repo)}
-                                    className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-1.5 px-3 rounded"
-                                >
-                                    Analyze
-                                </button>
-                            </li>
+                                {/* Βελάκι που εμφανίζεται στο hover */}
+                                <div className="text-gray-500 group-hover:text-indigo-400 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </div>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 )}
             </div>
 
-            {/* 3. ΚΟΥΜΠΙ ΑΠΟΣΥΝΔΕΣΗΣ (Μικρό Link στο τέλος) */}
+            {/* 5. ΚΟΥΜΠΙ ΑΠΟΣΥΝΔΕΣΗΣ (Ίδιο στυλ με τη λίστα) */}
             <button
                 onClick={handleLogout}
-                className="text-sm text-gray-400 hover:text-red-500 transition-colors underline"
+                className="flex items-center space-x-2 bg-[#2d2d2d] hover:bg-red-900/30 border border-gray-700 hover:border-red-500/50 text-gray-300 hover:text-red-400 px-6 py-3 rounded-xl transition-all duration-200 shadow-lg"
             >
-                Αποσύνδεση
+                <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                <span className="font-medium">Αποσύνδεση</span>
             </button>
 
-            {/* --- MODAL --- */}
+            {/* --- DARK MODAL --- */}
             {isModalOpen && selectedRepo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-40 backdrop-blur-sm">
-                    <div className="bg-white rounded shadow-lg max-w-sm w-full p-5">
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">Επιβεβαίωση</h3>
-                        <p className="text-sm text-gray-600 mb-6">
-                            Έναρξη ανάλυσης για το <strong>{selectedRepo.name}</strong>;
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm">
+                    <div className="bg-[#2d2d2d] border border-gray-600 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in-up">
+                        <h3 className="text-xl font-bold text-white mb-2 text-center">Επιβεβαίωση</h3>
+                        <p className="text-gray-400 mb-8 text-center text-sm leading-relaxed">
+                            Θέλεις να ξεκινήσει η ανάλυση κώδικα για το repository <br/>
+                            <span className="text-indigo-400 font-semibold">{selectedRepo.name}</span>;
                         </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={handleCloseModal}
-                                disabled={isAnalyzing}
-                                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded border border-gray-200"
-                            >
-                                Ακύρωση
-                            </button>
+
+                        <div className="flex flex-col space-y-3">
                             <button
                                 onClick={handleConfirmAnalysis}
                                 disabled={isAnalyzing}
-                                className="px-3 py-1.5 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded"
+                                className="w-full py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isAnalyzing ? '...' : 'Εκκίνηση'}
+                                {isAnalyzing ? 'Εκκίνηση...' : 'ΝΑΙ, Ξεκίνα την ανάλυση'}
+                            </button>
+
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                disabled={isAnalyzing}
+                                className="w-full py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-700 rounded-xl transition-colors"
+                            >
+                                Ακύρωση
                             </button>
                         </div>
                     </div>
