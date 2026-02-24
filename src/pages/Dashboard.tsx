@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+// NEW: Πρόσθεσα το useRef στα imports
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { CircleUser, Code, ChevronRight, LogOut, Loader2 } from 'lucide-react';
@@ -29,6 +30,28 @@ export default function Dashboard() {
 
     // Χρησιμοποιούμε το ID για να ξέρουμε ποιο έχει επιλεγεί (για το Figma scale effect)
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
+
+    // NEW: 1. Φτιάχνουμε ένα Ref για να "μαρκάρουμε" το container της λίστας
+    const listRef = useRef<HTMLDivElement>(null);
+
+    // NEW: 2. Προσθέτουμε ένα useEffect που ακούει για clicks στο document
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            // Αν υπάρχει το listRef (η λίστα) ΚΑΙ το στοιχείο που πατήθηκε ΔΕΝ είναι μέσα στη λίστα
+            if (listRef.current && !listRef.current.contains(event.target as Node)) {
+                setSelectedRepoId(null); // Τότε κάνε unselect το τρέχον repo
+            }
+        };
+
+        // Βάζουμε τον "ωτακουστή" όταν το component εμφανίζεται
+        document.addEventListener("mousedown", handleClickOutside);
+
+        // Τον βγάζουμε όταν το component φεύγει για να μην γεμίζουμε τη μνήμη
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []); // Το άδειο array σημαίνει ότι θα τρέξει μόνο μια φορά στο mount
+
 
     useEffect(() => {
         const token = localStorage.getItem('jwt_token');
@@ -109,8 +132,11 @@ export default function Dashboard() {
             </div>
 
             {/* Repository List Card */}
-            <div className="w-full max-w-md mb-4 rounded-xl"
-                 style={{ backgroundColor: '#2d2d2d' }}>
+            <div
+                ref={listRef} // NEW: 3. Συνδέουμε το listRef με το HTML div της λίστας
+                className="w-full max-w-md mb-4 rounded-xl"
+                style={{ backgroundColor: '#2d2d2d' }}
+            >
 
                 {isLoadingRepos ? (
                     // Loading State μέσα στο στυλ του Figma
