@@ -6,12 +6,12 @@
     --color-bram-surface: #ffffff;
 
     /* Primary: Ζωντανό Emerald Green για αντίθεση μέσα στις κάρτες */
-    --color-bram-primary: #0ab640;
-    --color-bram-primary-hover: #29ba52;
+    --color-bram-primary: #074219;
+    --color-bram-primary-hover: #108c35;
     --color-bram-primary-soft: rgba(16, 185, 129, 0.1);
 
     /* Accent: Blue για λεπτομέρειες (π.χ. το profile icon) */
-    --color-bram-accent: #0ab640;
+    --color-bram-accent: #12b144;
     --color-bram-accent-light: #eff6ff;
 
     /* Terminal Colors */
