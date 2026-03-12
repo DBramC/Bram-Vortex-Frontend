@@ -6,9 +6,9 @@
     --color-bram-surface: #ffffff;
 
     /* Primary: Το ζωντανό πράσινο του Vortex */
-    --color-bram-primary: #10b981;
-    --color-bram-primary-hover: #059669;
-    --color-bram-primary-soft: rgba(16, 185, 129, 0.1);
+    --color-bram-primary: #064e3b;
+    --color-bram-primary-hover: #5bcf56;
+    --color-bram-primary-soft: rgba(22, 185, 16, 0.1);
 
     /* Accent: Το Μπλε της τεχνολογίας */
     --color-bram-accent: #0847d8;
