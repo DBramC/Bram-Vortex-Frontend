@@ -1,32 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-    /* Φόντο: Πολύ αχνό Μπλε-Γκρι (Slate) για "αέρα" */
-    --color-bram-bg: #f1f5f9;
+    /* Φόντο: Ελαφρώς πιο "κρύο" γκρι-μπλε για να ξεχωρίζουν οι λευκές κάρτες */
+    --color-bram-bg: #f8fafc;
 
     /* Κάρτες: Καθαρό Λευκό */
     --color-bram-surface: #ffffff;
 
-    /* Primary: Το Πράσινο της επιτυχίας (Emerald) */
-    --color-bram-primary: #10b981;
-    --color-bram-primary-hover: #059669;
+    /* Primary (ΠΡΑΣΙΝΟ): Πιο γεμάτο και σκούρο πράσινο για να διαβάζεται πάνω στο λευκό */
+    --color-bram-primary: #059669;
+    --color-bram-primary-hover: #047857;
 
-    /* Accent: Επαγγελματικό Μπλε (Royal Blue) */
-    --color-bram-accent: #2563eb;
-    --color-bram-accent-light: #dbeafe;
+    /* Accent (ΜΠΛΕ): Ένα βαθύ Navy/Royal Blue που αποπνέει εμπιστοσύνη */
+    --color-bram-accent: #1e40af;
+    --color-bram-accent-light: #eff6ff;
 
-    /* Κείμενο: Πολύ σκούρο Navy (για να μη "χτυπάει" το μαύρο) */
-    --color-bram-text-main: #1e293b;
-    --color-bram-text-muted: #64748b;
+    /* ΚΕΙΜΕΝΟ: Εδώ είναι το μυστικό. Χρησιμοποιούμε σχεδόν μαύρο-navy */
+    --color-bram-text-main: #020617;   /* Πολύ σκούρο για μέγιστη αναγνωσιμότητα */
+    --color-bram-text-muted: #475569;  /* Πιο σκούρο γκρι από πριν */
 
-    /* Borders: Απαλό γκρι */
-    --color-bram-border: #e2e8f0;
+    /* Borders: Πιο έντονα περιγράμματα για να ορίζονται οι χώροι */
+    --color-bram-border: #cbd5e1;
 }
 
-/* Εφαρμογή στο σώμα της σελίδας */
 @layer base {
     body {
         @apply bg-bram-bg text-bram-text-main antialiased;
         font-family: 'Inter', system-ui, sans-serif;
+        /* Κάνει τη γραμματοσειρά λίγο πιο "γεμάτη" */
+        letter-spacing: -0.01em;
     }
 }
