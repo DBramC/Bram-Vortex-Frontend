@@ -1,23 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-    /* Φόντο: Πολύ αχνό γκρι-μπλε για να "κάθεται" καλά το λευκό */
-    --color-bram-bg: #f8fafc;
+    /* Φόντο: Ένα πολύ ελαφρύ, φρέσκο πράσινο (Mint/Emerald tint) */
+    --color-bram-bg: #f0fdf4;
     --color-bram-surface: #ffffff;
 
-    /* Πράσινο (Action): Πιο σκούρο για να διαβάζεται το λευκό κείμενο μέσα του */
+    /* Primary: Το Πράσινο της δράσης */
     --color-bram-primary: #059669;
     --color-bram-primary-hover: #047857;
 
-    /* Μπλε (Tech/Identity): Ένα σοβαρό Indigo/Blue */
+    /* Accent: Το Μπλε της τεχνολογίας */
     --color-bram-accent: #2563eb;
     --color-bram-accent-light: #eff6ff;
 
-    /* Κείμενο: Σχεδόν μαύρο για μέγιστο contrast */
+    /* TERMINAL COLORS (ΝΕΟ) */
+    --color-terminal-bg: #0f172a;       /* Σκούρο Navy/Gray */
+    --color-terminal-prompt: #10b981;   /* Πράσινο κείμενο */
+    --color-terminal-blueprint: #3b82f6; /* Μπλε κείμενο */
+
+    /* Κείμενο & Borders */
     --color-bram-text-main: #020617;
     --color-bram-text-muted: #475569;
-
-    --color-bram-border: #cbd5e1; /* Πιο σκούρο border για να φαίνονται τα όρια */
+    --color-bram-border: #cbd5e1;
 }
 
 @layer base {

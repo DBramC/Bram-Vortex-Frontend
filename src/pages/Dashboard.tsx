@@ -154,7 +154,7 @@ export default function Dashboard() {
     };
 
     // ----------------------------------------------------------------------
-    // 3. RENDERING (High Contrast & No-Crop Style)
+    // 3. RENDERING
     // ----------------------------------------------------------------------
     return (
         <div className="min-h-screen flex flex-col items-center px-4 py-12 bg-bram-bg text-bram-text-main antialiased font-sans">
@@ -167,21 +167,21 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Header Branding (Matches Login) */}
+            {/* Header Branding (Vortex is Green) */}
             <div className="text-center mb-16">
                 <h1 className="text-6xl font-black mb-3 tracking-tighter text-bram-text-main">
-                    Bram <span className="text-bram-accent">Vortex</span>
+                    Bram <span className="text-bram-primary">Vortex</span>
                 </h1>
                 <p className="text-bram-text-muted font-bold text-xl tracking-tight">Select a repository to architect</p>
             </div>
 
-            {/* Repository List - Removed overflow-hidden from outer container */}
+            {/* Repository List - Container must NOT have overflow-hidden */}
             <div ref={listRef} className="w-full max-w-xl mb-12 flex flex-col gap-6">
 
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
-                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs">Fetching repositories...</p>
+                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs text-center">Fetching repositories...</p>
                     </div>
                 ) : repos.length === 0 ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
@@ -198,12 +198,12 @@ export default function Dashboard() {
 
                         return (
                             <div key={repo.id} className="relative transition-all duration-300">
-                                {/* ITEM CARD: Removed overflow-hidden to allow shadow and scale pop */}
+                                {/* CARD: No overflow-hidden here! Allows the scale and shadows to pop */}
                                 <div
                                     className={`
                                         group transition-all duration-500 ease-out rounded-[2rem] border-2
                                         ${isSelected
-                                        ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] z-30'
+                                        ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] z-30'
                                         : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02] hover:shadow-lg z-10'
                                     }
                                     `}
@@ -254,8 +254,10 @@ export default function Dashboard() {
                                                         </div>
                                                         <ChevronDown size={18} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
                                                     </button>
+
+                                                    {/* DROPDOWN MENU - Must be absolute and have high z-index */}
                                                     {isCloudMenuOpen && (
-                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-50 overflow-hidden">
+                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {CLOUD_PROVIDERS.map(opt => (
                                                                 <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors font-black text-sm text-bram-text-main"
                                                                         onClick={(e) => { e.stopPropagation(); setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}>
@@ -281,8 +283,10 @@ export default function Dashboard() {
                                                         </div>
                                                         <ChevronDown size={18} className={`transition-transform duration-300 ${isComputeMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
                                                     </button>
+
+                                                    {/* DROPDOWN MENU */}
                                                     {isComputeMenuOpen && (
-                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-50 overflow-hidden">
+                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {COMPUTE_OPTIONS.map(opt => (
                                                                 <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors font-black text-sm text-bram-text-main"
                                                                         onClick={(e) => { e.stopPropagation(); setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}>
@@ -294,10 +298,10 @@ export default function Dashboard() {
                                                 </div>
                                             </div>
 
-                                            {/* Confirm Button - Green Primary Action */}
+                                            {/* Action Buttons */}
                                             <div className="flex gap-4">
                                                 <button
-                                                    className="px-8 py-4.5 rounded-xl border-2 border-bram-border font-black text-sm uppercase tracking-widest text-bram-text-muted hover:bg-slate-50 hover:text-bram-text-main transition-all"
+                                                    className="px-8 py-4.5 rounded-xl border-2 border-bram-border font-black text-sm uppercase tracking-widest text-bram-text-muted hover:bg-slate-50 transition-all"
                                                     onClick={(e) => { e.stopPropagation(); setSelectedRepoId(null); }}
                                                 >
                                                     Cancel
