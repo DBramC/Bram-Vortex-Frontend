@@ -2,7 +2,7 @@
 
 @theme {
     /* Φόντο: Mint/Emerald tint */
-    --color-bram-bg: #e1f4e4;
+    --color-bram-bg: #04782a;
     --color-bram-surface: #95ffad; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
 
     /* Header Glass Effect */
@@ -15,7 +15,7 @@
 
     /* Accent: Το Μπλε της τεχνολογίας */
     --color-bram-accent: #0847d8;
-    --color-bram-accent-light: #89bdff;
+    --color-bram-accent-light: #c3dfff;
 
     /* TERMINAL COLORS */
     --color-terminal-bg: #0f172a;
