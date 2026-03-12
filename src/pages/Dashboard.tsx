@@ -154,38 +154,38 @@ export default function Dashboard() {
     };
 
     // ----------------------------------------------------------------------
-    // 3. RENDERING
+    // 3. RENDERING (High Contrast & No-Crop Style)
     // ----------------------------------------------------------------------
     return (
-        <div className="min-h-screen flex flex-col items-center px-4 py-10 bg-bram-bg text-bram-text-main antialiased">
+        <div className="min-h-screen flex flex-col items-center px-4 py-12 bg-bram-bg text-bram-text-main antialiased font-sans">
 
             {/* User Pill */}
-            <div className="w-full max-w-md mb-10 flex justify-center">
-                <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full border border-bram-border bg-bram-surface shadow-sm">
+            <div className="w-full max-w-lg mb-12 flex justify-center">
+                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border-2 border-bram-border bg-white shadow-sm">
                     <CircleUser size={20} className="text-bram-accent" />
-                    <span className="font-bold text-sm tracking-tight">{username}</span>
+                    <span className="font-black text-sm tracking-tight text-bram-text-main">{username}</span>
                 </div>
             </div>
 
-            {/* Header */}
-            <div className="text-center mb-12">
-                <h1 className="text-5xl font-black mb-3 tracking-tighter">
-                    Bram <span className="text-bram-primary">Vortex</span>
+            {/* Header Branding (Matches Login) */}
+            <div className="text-center mb-16">
+                <h1 className="text-6xl font-black mb-3 tracking-tighter text-bram-text-main">
+                    Bram <span className="text-bram-accent">Vortex</span>
                 </h1>
-                <p className="text-bram-text-muted font-bold text-lg">Select a repository to begin analysis</p>
+                <p className="text-bram-text-muted font-bold text-xl tracking-tight">Select a repository to architect</p>
             </div>
 
-            {/* Repository List */}
-            <div ref={listRef} className="w-full max-w-lg mb-8 flex flex-col gap-4">
+            {/* Repository List - Removed overflow-hidden from outer container */}
+            <div ref={listRef} className="w-full max-w-xl mb-12 flex flex-col gap-6">
 
                 {isLoadingRepos ? (
-                    <div className="p-16 text-center bg-bram-surface rounded-3xl border border-bram-border shadow-sm">
-                        <Loader2 className="animate-spin mx-auto mb-4 text-bram-primary" size={40} />
-                        <p className="font-bold text-bram-text-muted">Loading repositories...</p>
+                    <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
+                        <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
+                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs">Fetching repositories...</p>
                     </div>
                 ) : repos.length === 0 ? (
-                    <div className="p-16 text-center bg-bram-surface rounded-3xl border border-bram-border shadow-sm">
-                        <p className="font-bold text-bram-text-muted">No repositories found.</p>
+                    <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
+                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs">No repositories found.</p>
                     </div>
                 ) : (
                     repos.map((repo) => {
@@ -198,65 +198,66 @@ export default function Dashboard() {
 
                         return (
                             <div key={repo.id} className="relative transition-all duration-300">
+                                {/* ITEM CARD: Removed overflow-hidden to allow shadow and scale pop */}
                                 <div
                                     className={`
-                                        group transition-all duration-500 ease-out rounded-2xl border-2 overflow-hidden
+                                        group transition-all duration-500 ease-out rounded-[2rem] border-2
                                         ${isSelected
-                                        ? 'bg-bram-surface border-bram-primary scale-[1.05] shadow-2xl z-30'
-                                        : 'bg-bram-surface border-transparent hover:border-bram-accent/30 hover:scale-[1.02] hover:shadow-lg z-10'
+                                        ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] z-30'
+                                        : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02] hover:shadow-lg z-10'
                                     }
                                     `}
                                 >
                                     <button
-                                        className="w-full px-6 py-5 flex items-center gap-5 outline-none cursor-pointer"
+                                        className="w-full px-8 py-6 flex items-center gap-6 outline-none cursor-pointer"
                                         onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}
                                     >
                                         <div className={`
-                                            flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-colors
-                                            ${isSelected ? 'bg-green-100 text-bram-primary' : 'bg-bram-accent-light text-bram-accent'}
+                                            flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors
+                                            ${isSelected ? 'bg-green-50 text-bram-primary' : 'bg-bram-accent-light text-bram-accent'}
                                         `}>
-                                            <Code size={28} strokeWidth={2.5} />
+                                            <Code size={32} strokeWidth={2.5} />
                                         </div>
 
                                         <div className="flex-1 text-left">
-                                            <div className={`font-black truncate text-xl tracking-tight ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>
+                                            <div className={`font-black truncate text-2xl tracking-tighter ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>
                                                 {repo.name}
                                             </div>
-                                            <div className="text-bram-text-muted text-sm font-bold uppercase tracking-wider mt-0.5">
+                                            <div className="text-bram-text-muted text-xs font-black uppercase tracking-[0.2em] mt-1">
                                                 {repo.language || 'Plain Text'} • {repo.private ? 'Private' : 'Public'}
                                             </div>
                                         </div>
 
                                         <ChevronRight
-                                            size={24}
+                                            size={28}
                                             className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`}
                                         />
                                     </button>
 
                                     {isSelected && (
-                                        <div className="px-6 pb-6 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <div className="h-px bg-bram-border mb-6 w-full opacity-60" />
+                                        <div className="px-8 pb-8 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <div className="h-0.5 bg-bram-border mb-8 w-full opacity-40" />
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
                                                 {/* Target Cloud Dropdown */}
                                                 <div className="relative">
-                                                    <label className="block text-[10px] font-black uppercase tracking-[0.15em] mb-2 text-bram-text-muted">Target Cloud</label>
+                                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-text-muted">Target Cloud</label>
                                                     <button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
-                                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 transition-all outline-none bg-white
+                                                        className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-slate-50/50
                                                             ${isCloudMenuOpen ? 'border-bram-accent' : 'border-bram-border hover:border-slate-400'}`}
                                                     >
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-3">
                                                             <SelectedCloudIcon />
-                                                            <span className="text-sm font-bold">{selectedCloudObj?.label}</span>
+                                                            <span className="text-sm font-black text-bram-text-main">{selectedCloudObj?.label}</span>
                                                         </div>
                                                         <ChevronDown size={18} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
                                                     </button>
                                                     {isCloudMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-50 overflow-hidden">
                                                             {CLOUD_PROVIDERS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors font-bold text-sm"
+                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors font-black text-sm text-bram-text-main"
                                                                         onClick={(e) => { e.stopPropagation(); setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}>
                                                                     <opt.icon /> {opt.label}
                                                                 </button>
@@ -267,25 +268,25 @@ export default function Dashboard() {
 
                                                 {/* Compute Infra Dropdown */}
                                                 <div className="relative">
-                                                    <label className="block text-[10px] font-black uppercase tracking-[0.15em] mb-2 text-bram-text-muted">Infrastructure</label>
+                                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-text-muted">Infrastructure</label>
                                                     <button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
-                                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 transition-all outline-none bg-white
+                                                        className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-slate-50/50
                                                             ${isComputeMenuOpen ? 'border-bram-accent' : 'border-bram-border hover:border-slate-400'}`}
                                                     >
-                                                        <div className="flex items-center gap-2">
-                                                            <SelectedComputeIcon size={18} className="text-bram-accent" />
-                                                            <span className="text-sm font-bold">{selectedComputeObj?.label}</span>
+                                                        <div className="flex items-center gap-3">
+                                                            <SelectedComputeIcon size={20} className="text-bram-accent" />
+                                                            <span className="text-sm font-black text-bram-text-main">{selectedComputeObj?.label}</span>
                                                         </div>
                                                         <ChevronDown size={18} className={`transition-transform duration-300 ${isComputeMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
                                                     </button>
                                                     {isComputeMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-50 overflow-hidden">
                                                             {COMPUTE_OPTIONS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors font-bold text-sm"
+                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors font-black text-sm text-bram-text-main"
                                                                         onClick={(e) => { e.stopPropagation(); setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}>
-                                                                    <opt.icon size={18} className="text-bram-accent" /> {opt.label}
+                                                                    <opt.icon size={20} className="text-bram-accent" /> {opt.label}
                                                                 </button>
                                                             ))}
                                                         </div>
@@ -293,10 +294,10 @@ export default function Dashboard() {
                                                 </div>
                                             </div>
 
-                                            {/* Confirm Button */}
-                                            <div className="flex gap-3">
+                                            {/* Confirm Button - Green Primary Action */}
+                                            <div className="flex gap-4">
                                                 <button
-                                                    className="px-6 py-4 rounded-xl border-2 border-bram-border font-bold text-bram-text-muted hover:bg-slate-50 transition-colors"
+                                                    className="px-8 py-4.5 rounded-xl border-2 border-bram-border font-black text-sm uppercase tracking-widest text-bram-text-muted hover:bg-slate-50 hover:text-bram-text-main transition-all"
                                                     onClick={(e) => { e.stopPropagation(); setSelectedRepoId(null); }}
                                                 >
                                                     Cancel
@@ -304,9 +305,9 @@ export default function Dashboard() {
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleConfirmAnalysis(repo); }}
                                                     disabled={isAnalyzing}
-                                                    className="flex-1 py-4 rounded-xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-green-200 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                                    className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-green-200 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-tighter"
                                                 >
-                                                    {isAnalyzing ? <Loader2 className="animate-spin" size={20} /> : 'ANALYZE REPOSITORY'}
+                                                    {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : 'Generate Infrastructure'}
                                                 </button>
                                             </div>
                                         </div>
@@ -318,14 +319,14 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Logout */}
-            <div className="w-full max-w-md">
+            {/* Logout Section */}
+            <div className="w-full max-w-lg">
                 <button
-                    className="w-full px-6 py-4 rounded-2xl flex items-center justify-center gap-3 font-bold transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    className="w-full px-8 py-5 rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
                     onClick={handleLogout}
                 >
-                    <LogOut size={22} />
-                    <span>Log out of session</span>
+                    <LogOut size={22} className="rotate-180" />
+                    <span>Terminate Session</span>
                 </button>
             </div>
         </div>

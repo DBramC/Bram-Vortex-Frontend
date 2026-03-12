@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import { Loader2, ArrowLeft, Code2, Database } from 'lucide-react';
+import { Loader2, ArrowLeft, Database, Terminal } from 'lucide-react';
 
 interface AnalysisJob {
     jobId: string;
@@ -14,7 +14,7 @@ interface AnalysisJob {
 
 const AnalyzedRepo: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
-    const navigate = useNavigate(); // Για το κουμπί 'Πίσω'
+    const navigate = useNavigate();
     const [job, setJob] = useState<AnalysisJob | null>(null);
 
     useEffect(() => {
@@ -33,7 +33,7 @@ const AnalyzedRepo: React.FC = () => {
             if (job?.status !== 'COMPLETED' && job?.status !== 'FAILED') {
                 fetchJobStatus();
             }
-        }, 2000);
+        }, 3000);
 
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
@@ -41,86 +41,93 @@ const AnalyzedRepo: React.FC = () => {
     if (!job) {
         return (
             <div className="min-h-screen bg-bram-bg flex items-center justify-center">
-                <div className="flex flex-col items-center text-bram-text-muted">
-                    <Loader2 className="animate-spin mb-4 text-bram-primary" size={40} />
-                    <p className="text-lg font-medium">Φόρτωση δεδομένων...</p>
-                </div>
+                <Loader2 className="animate-spin text-bram-accent" size={64} />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-bram-bg p-6 lg:p-10 font-sans text-bram-text-main flex flex-col items-center">
+        <div className="min-h-screen bg-bram-bg p-8 flex flex-col items-center antialiased">
 
-            {/* Header Σελίδας */}
-            <div className="w-full max-w-7xl mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-bram-surface p-6 rounded-2xl border border-bram-border shadow-sm">
-                <div className="flex items-center gap-5">
+            {/* 1. Header με υψηλή αντίθεση και ενοποιημένο Branding */}
+            <div className="w-full max-w-7xl mb-10 bg-white p-8 rounded-[2.5rem] border-2 border-bram-border shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-6">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="p-2.5 bg-slate-50 border border-bram-border hover:bg-green-50 rounded-full transition-colors text-bram-text-muted hover:text-bram-primary"
-                        title="Επιστροφή στο Dashboard"
+                        className="p-4 bg-slate-100 rounded-full hover:bg-bram-accent-light hover:text-bram-accent transition-all border border-transparent hover:border-bram-accent"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={24} />
                     </button>
                     <div>
-                        <h1 className="text-2xl lg:text-3xl font-extrabold text-bram-text-main flex items-center gap-3">
-                            <Code2 className="text-bram-primary" size={28} />
-                            {job.repoName}
+                        <div className="flex items-center gap-3 mb-1">
+                            <span className="text-sm font-black text-bram-accent uppercase tracking-[0.2em]">Architecture Analysis</span>
+                        </div>
+                        <h1 className="text-4xl font-black text-bram-text-main tracking-tighter">
+                            Analyze: <span className="text-bram-accent">{job.repoName}</span>
                         </h1>
-                        <p className="text-bram-text-muted font-medium mt-1">
-                            Target Cloud: <span className="text-bram-text-main font-semibold">{job.targetCloud}</span> • Job ID: <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{job.jobId}</span>
+                        <p className="text-bram-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-1">
+                            Cloud Platform: <span className="text-bram-text-main">{job.targetCloud}</span> • ID: {job.jobId.slice(0, 8)}
                         </p>
                     </div>
                 </div>
 
-                {/* Status Badge */}
-                <div className={`mt-4 sm:mt-0 px-5 py-2.5 rounded-full font-bold flex items-center gap-3 shadow-sm border
-                ${job.status === 'ANALYZING' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
-                ${job.status === 'COMPLETED' ? 'bg-green-50 text-bram-primary border-green-200' : ''}
-                ${job.status === 'FAILED' ? 'bg-red-50 text-red-600 border-red-200' : ''}`}>
-                    {job.status === 'ANALYZING' && <Loader2 size={18} className="animate-spin" />}
-                    {job.status}
+                {/* Status Badge: Πράσινο μόνο στο COMPLETED */}
+                <div className={`px-8 py-3 rounded-full font-black text-sm border-2 uppercase tracking-widest shadow-sm transition-all duration-500
+                    ${job.status === 'COMPLETED'
+                    ? 'bg-green-50 text-bram-primary border-bram-primary'
+                    : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
+                    {job.status === 'ANALYZING' ? 'Analysing Repository...' : job.status}
                 </div>
             </div>
 
-            {/* Split Screen Container */}
-            <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* 2. Split Screen Container */}
+            <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-10 pb-12">
 
-                {/* ΑΡΙΣΤΕΡΑ: Το Prompt */}
-                <div className="flex flex-col h-[650px] bg-bram-surface rounded-2xl border border-bram-border shadow-md overflow-hidden">
-                    <div className="bg-slate-50 p-4 border-b border-bram-border flex items-center gap-3">
-                        <div className="flex gap-2">
-                            <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                            <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                {/* ΑΡΙΣΤΕΡΑ: System Prompt (Neutral/Clean) */}
+                <div className="bg-white rounded-[2.5rem] border-2 border-bram-border shadow-xl flex flex-col h-[700px] overflow-hidden group">
+                    <div className="bg-slate-50 px-8 py-5 border-b-2 border-bram-border flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Terminal size={20} className="text-bram-text-muted" />
+                            <span className="font-black text-[10px] uppercase tracking-[0.3em] text-bram-text-muted">System Instructions</span>
                         </div>
-                        <span className="ml-2 text-xs font-bold text-bram-text-muted uppercase tracking-wider">System Prompt</span>
+                        <div className="flex gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
+                        </div>
                     </div>
-                    <div className="p-6 overflow-auto flex-1 font-mono text-[13px] text-slate-700 bg-white leading-relaxed">
-                        <pre className="whitespace-pre-wrap">{job.promptMessage || "Generating prompt..."}</pre>
+                    <div className="p-8 overflow-auto flex-1 font-mono text-[13px] text-bram-text-main leading-relaxed bg-white scrollbar-thin">
+                        <pre className="whitespace-pre-wrap selection:bg-bram-accent-light selection:text-bram-accent">
+                            {job.promptMessage || "Generating optimized system prompt..."}
+                        </pre>
                     </div>
                 </div>
 
-                {/* ΔΕΞΙΑ: Η απάντηση (Blueprint) */}
-                <div className="flex flex-col h-[650px] bg-bram-surface rounded-2xl border border-bram-border shadow-md overflow-hidden relative">
-                    <div className="bg-slate-50 p-4 border-b border-bram-border flex items-center gap-3 z-20">
-                        <Database className="text-bram-primary" size={18} />
-                        <span className="text-xs font-bold text-bram-text-muted uppercase tracking-wider">Generated Blueprint</span>
+                {/* ΔΕΞΙΑ: Το Blueprint (Meaningful Blue) */}
+                <div className="bg-white rounded-[2.5rem] border-2 border-bram-accent shadow-2xl flex flex-col h-[700px] overflow-hidden relative group">
+                    {/* Header με μπλε θέμα */}
+                    <div className="bg-bram-accent-light px-8 py-5 border-b-2 border-bram-accent flex items-center gap-3 z-20">
+                        <Database size={20} className="text-bram-accent" />
+                        <span className="font-black text-[10px] uppercase tracking-[0.3em] text-bram-accent">Generated Infrastructure Blueprint</span>
                     </div>
 
-                    <div className="p-6 overflow-auto flex-1 font-mono text-[13px] bg-white">
+                    <div className="p-8 overflow-auto flex-1 font-mono text-[13px] text-bram-text-main bg-slate-50/30 relative">
                         {job.status === 'ANALYZING' ? (
-                            <div className="absolute inset-0 top-[57px] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10">
-                                <div className="flex flex-col items-center text-center px-6">
-                                    <div className="w-16 h-16 border-4 border-bram-primary border-t-transparent border-dashed rounded-full animate-spin mb-6"></div>
-                                    <p className="text-bram-primary font-bold text-xl mb-2">Ο AI Agent αναλύει το κώδικα...</p>
-                                    <p className="text-bram-text-muted text-sm max-w-sm">Σαρώνει το manifest, εντοπίζει dependencies και σχεδιάζει την υποδομή στο {job.targetCloud}.</p>
-                                </div>
+                            /* Loading Overlay */
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm z-10 p-10 text-center">
+                                <div className="w-20 h-20 border-4 border-bram-accent border-t-transparent border-dashed rounded-full animate-spin mb-8"></div>
+                                <h3 className="text-bram-accent font-black text-2xl mb-3 tracking-tight">Gemini is Architecting...</h3>
+                                <p className="text-bram-text-muted font-bold text-sm max-w-xs leading-relaxed">
+                                    Σαρώνουμε τον κώδικα, εντοπίζουμε τα services και σχεδιάζουμε την ιδανική υποδομή για το {job.targetCloud}.
+                                </p>
                             </div>
                         ) : (
-                            <pre className="whitespace-pre-wrap text-slate-800">
-                            {job.blueprintJson ? JSON.stringify(JSON.parse(job.blueprintJson), null, 2) : "No data generated."}
-                        </pre>
+                            /* JSON Output με High Contrast */
+                            <pre className="whitespace-pre-wrap text-bram-text-main">
+                                {job.blueprintJson
+                                    ? JSON.stringify(JSON.parse(job.blueprintJson), null, 4)
+                                    : "// No blueprint generated yet."}
+                            </pre>
                         )}
                     </div>
                 </div>

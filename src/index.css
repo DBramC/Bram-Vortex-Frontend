@@ -1,33 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-    /* Φόντο: Ελαφρώς πιο "κρύο" γκρι-μπλε για να ξεχωρίζουν οι λευκές κάρτες */
+    /* Φόντο: Πολύ αχνό γκρι-μπλε για να "κάθεται" καλά το λευκό */
     --color-bram-bg: #f8fafc;
-
-    /* Κάρτες: Καθαρό Λευκό */
     --color-bram-surface: #ffffff;
 
-    /* Primary (ΠΡΑΣΙΝΟ): Πιο γεμάτο και σκούρο πράσινο για να διαβάζεται πάνω στο λευκό */
+    /* Πράσινο (Action): Πιο σκούρο για να διαβάζεται το λευκό κείμενο μέσα του */
     --color-bram-primary: #059669;
     --color-bram-primary-hover: #047857;
 
-    /* Accent (ΜΠΛΕ): Ένα βαθύ Navy/Royal Blue που αποπνέει εμπιστοσύνη */
-    --color-bram-accent: #1e40af;
+    /* Μπλε (Tech/Identity): Ένα σοβαρό Indigo/Blue */
+    --color-bram-accent: #2563eb;
     --color-bram-accent-light: #eff6ff;
 
-    /* ΚΕΙΜΕΝΟ: Εδώ είναι το μυστικό. Χρησιμοποιούμε σχεδόν μαύρο-navy */
-    --color-bram-text-main: #020617;   /* Πολύ σκούρο για μέγιστη αναγνωσιμότητα */
-    --color-bram-text-muted: #475569;  /* Πιο σκούρο γκρι από πριν */
+    /* Κείμενο: Σχεδόν μαύρο για μέγιστο contrast */
+    --color-bram-text-main: #020617;
+    --color-bram-text-muted: #475569;
 
-    /* Borders: Πιο έντονα περιγράμματα για να ορίζονται οι χώροι */
-    --color-bram-border: #cbd5e1;
+    --color-bram-border: #cbd5e1; /* Πιο σκούρο border για να φαίνονται τα όρια */
 }
 
 @layer base {
     body {
         @apply bg-bram-bg text-bram-text-main antialiased;
         font-family: 'Inter', system-ui, sans-serif;
-        /* Κάνει τη γραμματοσειρά λίγο πιο "γεμάτη" */
-        letter-spacing: -0.01em;
     }
 }
