@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-// NEW: Πρόσθεσα το ChevronDown για το βελάκι του Dropdown
 import { CircleUser, Code, ChevronRight, LogOut, Loader2, ChevronDown } from 'lucide-react';
 
 // ----------------------------------------------------------------------
@@ -17,10 +16,9 @@ interface Repo {
     private: boolean;
 }
 
-// Custom SVG Icons για τους Cloud Providers
+// Custom SVG Icons (Διατηρήθηκαν ακριβώς όπως τα ζήτησες!)
 const AwsIcon = () => (
     <svg viewBox="0 0 64 36" width="34" height="20" fill="currentColor">
-        {/* Τα γράμματα 'aws' που παίρνουν αυτόματα το λευκό/γκρι χρώμα του κειμένου σου */}
         <text
             x="2"
             y="24"
@@ -32,8 +30,6 @@ const AwsIcon = () => (
         >
             aws
         </text>
-
-        {/* Το επίσημο πορτοκαλί χαμόγελο (βελάκι) τοποθετημένο ακριβώς από κάτω */}
         <g transform="translate(6, 9) scale(1.3)">
             <path fill="#FF9900" d="M14.07 16.63c-2.31 1.09-5.02 1.48-7.46 1-2.11-.4-3.93-1.4-5.35-2.8-.19-.19-.04-.52.23-.44 3.01.84 6.28.74 9.15-.35 1.26-.48 2.44-1.15 3.5-1.98.23-.19.57.05.43.32-.77.13-1.56 1.44-2.42 2.3-1.15 1.15-2.5 2.11-3.93 2.82-.5.25-1.03.45-1.56.6a.81.81 0 01-1.03-1.01c.15-.54.35-1.05.6-1.55.71-1.44 1.67-2.78 2.82-3.93.86-.86 2.17-1.66 2.3-2.42.27-.14.51.19.32.42-.96 1.15-1.53 2.34-1.92 3.6-.38.82-.53 2.15.38 2.44z"/>
             <path fill="#FF9900" d="M12.58 10.77a1.69 1.69 0 00-.67-.26 1.96 1.96 0 00-.64.13c-.17.07-.29.19-.29.35 0 .19.13.29.36.34l.77.13a2.43 2.43 0 011.57.86 1.92 1.92 0 01.36 1.2 2.13 2.13 0 01-1 1.82 4.12 4.12 0 01-2.33.58 5.62 5.62 0 01-3.1-.89l.63-1.44a4.53 4.53 0 002.4.75c.43 0 .77-.08 1.01-.22a.72.72 0 00.34-.61c0-.22-.1-.36-.29-.44a1.86 1.86 0 00-.52-.17l-.9-.16a2.4 2.4 0 01-1.49-.8 1.92 1.92 0 01-.42-1.2 2.06 2.06 0 01.92-1.73 3.64 3.64 0 012.11-.55 5.46 5.46 0 012.7.69l-.54 1.28z"/>
@@ -78,21 +74,18 @@ export default function Dashboard() {
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
-    // NEW: States για το Cloud Dropdown
     const [selectedCloud, setSelectedCloud] = useState<string>('AWS');
     const [isCloudMenuOpen, setIsCloudMenuOpen] = useState(false);
 
-    // Κλείσιμο του Custom Dropdown όταν αλλάζει το επιλεγμένο repo
     useEffect(() => {
         setIsCloudMenuOpen(false);
     }, [selectedRepoId]);
 
-    // Click-Outside για το listRef
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (listRef.current && !listRef.current.contains(event.target as Node)) {
                 setSelectedRepoId(null);
-                setIsCloudMenuOpen(false); // Κλείνουμε και το dropdown για ασφάλεια
+                setIsCloudMenuOpen(false);
             }
         };
 
@@ -142,27 +135,16 @@ export default function Dashboard() {
     const handleConfirmAnalysis = async (repo: Repo) => {
         try {
             setIsAnalyzing(true);
-
-            // 1. Φτιάχνουμε το request body με ΟΛΕΣ τις επιλογές του χρήστη
-            let selectedCompute;
+            // Σημείωση: Αφαίρεσα το selectedCompute αφού δεν υπάρχει στο UI αυτού του αρχείου
             const requestBody = {
                 repoId: repo.id,
                 repoName: repo.name,
                 repoUrl: repo.html_url,
                 cloudProvider: selectedCloud,
-                computePreference: selectedCompute // <-- ΝΕΟ: Στέλνουμε αν θέλει VM, Container ή K8s
             };
 
-            // 2. Κάνουμε την κλήση στο API
             const response = await api.post('/dashboard/analyze', requestBody);
-
-            // 3. Καθαρίζουμε την επιλογή στο UI
             setSelectedRepoId(null);
-
-            // 4. <-- ΤΕΛΟΣ ΤΑ ALERTS! -->
-            // Αντί για alert, χρησιμοποιούμε το navigate για να πάμε τον χρήστη
-            // κατευθείαν στη σελίδα που δείχνει το Live Loading.
-            // Το response.data είναι το jobId που μόλις μας έστειλε η Java!
             navigate(`/analyzed-repo/${response.data}`);
 
         } catch (error) {
@@ -174,174 +156,131 @@ export default function Dashboard() {
     };
 
     // ----------------------------------------------------------------------
-    // 3. RENDERING
+    // 3. RENDERING (Με το νέο Bram Theme)
     // ----------------------------------------------------------------------
     return (
-        <div className="min-h-screen flex flex-col items-center px-4 py-6" style={{ backgroundColor: '#1a1a1a' }}>
+        <div className="min-h-screen flex flex-col items-center px-4 py-8 bg-bram-bg text-bram-text-main">
 
             {/* User Pill */}
             <div className="w-full max-w-md mb-8">
-                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border"
-                     style={{ backgroundColor: '#2d2d2d', borderColor: '#404040' }}>
-                    <CircleUser size={20} color="#e5e5e5" />
-                    <span style={{ color: '#e5e5e5' }}>{username}</span>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-bram-border bg-bram-surface shadow-sm">
+                    <CircleUser size={20} className="text-bram-primary" />
+                    <span className="font-medium text-bram-text-main">{username}</span>
                 </div>
             </div>
 
             {/* Header */}
-            <div className="text-center mb-8">
-                <h1 className="text-white mb-2" style={{ fontSize: '2.5rem' }}>Bram Vortex</h1>
-                <p style={{ color: '#9ca3af' }}>My Repositories</p>
+            <div className="text-center mb-10">
+                <h1 className="text-4xl font-extrabold text-bram-text-main mb-2 tracking-tight">Bram Vortex</h1>
+                <p className="text-bram-text-muted font-medium">My Repositories</p>
             </div>
 
             {/* Repository List Card */}
             <div
                 ref={listRef}
-                className="w-full max-w-md mb-4 rounded-xl"
-                style={{ backgroundColor: '#2d2d2d' }}
+                className="w-full max-w-md mb-6 rounded-2xl bg-bram-surface border border-bram-border shadow-lg overflow-hidden"
             >
 
                 {isLoadingRepos ? (
-                    <div className="p-8 text-center" style={{ color: '#9ca3af' }}>
-                        <Loader2 className="animate-spin mx-auto mb-2" color="#6366f1" />
-                        <p>Loading repositories...</p>
+                    <div className="p-10 text-center text-bram-text-muted">
+                        <Loader2 className="animate-spin mx-auto mb-3 text-bram-primary" size={32} />
+                        <p>Φόρτωση Repositories...</p>
                     </div>
                 ) : repos.length === 0 ? (
-                    <div className="p-8 text-center" style={{ color: '#9ca3af' }}>
-                        <p>No repositories found.</p>
+                    <div className="p-10 text-center text-bram-text-muted">
+                        <p>Δεν βρέθηκαν repositories.</p>
                     </div>
                 ) : (
                     repos.map((repo, index) => {
                         const isSelected = selectedRepoId === repo.id;
-
-                        // Βρίσκουμε το αντικείμενο του επιλεγμένου Cloud για να δείξουμε το εικονίδιό του στο κουμπί
                         const selectedCloudObj = CLOUD_PROVIDERS.find(c => c.id === selectedCloud);
                         const SelectedIcon = selectedCloudObj?.icon || AwsIcon;
 
                         return (
-                            <div key={repo.id} className="relative" style={isSelected ? { zIndex: 10 } : undefined}>
-                                <div
-                                    className="transition-all duration-300"
-                                    style={isSelected ? {
-                                        backgroundColor: '#3d3d3d',
-                                        transform: 'scale(1.08)',
-                                        boxShadow: '0 6px 16px rgba(0, 0, 0, 0.6)',
-                                        borderRadius: '12px'
-                                    } : undefined}
-                                >
+                            <div key={repo.id} className="relative group">
+                                <div className={`transition-all duration-300 ${isSelected ? 'bg-green-50/50' : 'hover:bg-slate-50'}`}>
+
+                                    {/* Repo Button */}
                                     <button
-                                        className="w-full px-4 py-4 flex items-center gap-4 hover:opacity-80 transition-opacity outline-none"
+                                        className="w-full px-5 py-4 flex items-center gap-4 outline-none"
                                         onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}
                                     >
-                                        {/* Icon Container */}
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
-                                             style={{ backgroundColor: '#1a1a1a' }}>
-                                            <Code size={20} color="#6366f1" />
+                                        <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-green-100 text-bram-primary">
+                                            <Code size={24} />
                                         </div>
 
-                                        {/* Repository Info */}
                                         <div className="flex-1 text-left overflow-hidden">
-                                            <div className="text-white truncate">{repo.name}</div>
-                                            <div className="truncate" style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
-                                                {repo.language || 'Unknown'} • {repo.private ? 'Private' : 'Active'}
+                                            <div className="font-semibold text-bram-text-main truncate text-lg">{repo.name}</div>
+                                            <div className="truncate text-bram-text-muted text-sm mt-0.5">
+                                                {repo.language || 'Unknown'} • {repo.private ? 'Private' : 'Public'}
                                             </div>
                                         </div>
 
-                                        {/* Chevron */}
-                                        <ChevronRight size={20} color="#6366f1" className={`transition-transform duration-300 ${isSelected ? 'rotate-90' : ''}`} />
+                                        <ChevronRight size={20} className={`text-bram-text-muted transition-transform duration-300 ${isSelected ? 'rotate-90 text-bram-primary' : ''}`} />
                                     </button>
 
-                                    {/* Action Area - Show only for selected repo */}
+                                    {/* Action Area (Dropdowns & Confirm) */}
                                     {isSelected && (
-                                        <div className="px-4 pb-4 animate-in fade-in duration-200">
+                                        <div className="px-5 pb-5 pt-2 animate-in fade-in slide-in-from-top-4 duration-300 border-t border-bram-border mt-2">
 
-                                            {/* NEW: Custom Cloud Provider Dropdown */}
-                                            <div className="mb-4 relative">
-                                                <label className="block text-xs mb-1.5" style={{ color: '#9ca3af' }}>Target Cloud Provider:</label>
-
-                                                {/* Dropdown Button */}
+                                            {/* CLOUD PROVIDER */}
+                                            <div className="mb-6 relative">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider mb-2 text-bram-text-muted">Target Cloud Provider</label>
                                                 <button
                                                     type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setIsCloudMenuOpen(!isCloudMenuOpen);
-                                                    }}
-                                                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors outline-none hover:opacity-90"
-                                                    style={{
-                                                        backgroundColor: '#1a1a1a',
-                                                        borderColor: isCloudMenuOpen ? '#6366f1' : '#404040'
-                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); setIsCloudMenuOpen(!isCloudMenuOpen); }}
+                                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all outline-none bg-white
+                                                        ${isCloudMenuOpen ? 'border-bram-primary ring-2 ring-green-100' : 'border-bram-border hover:border-gray-300'}`}
                                                 >
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-3 text-bram-text-main">
                                                         <SelectedIcon />
-                                                        <span className="text-sm text-white">{selectedCloudObj?.label}</span>
+                                                        <span className="text-sm font-medium">{selectedCloudObj?.label}</span>
                                                     </div>
-                                                    <ChevronDown size={16} color="#9ca3af" className={`transition-transform ${isCloudMenuOpen ? 'rotate-180' : ''}`} />
+                                                    <ChevronDown size={18} className={`text-bram-text-muted transition-transform ${isCloudMenuOpen ? 'rotate-180 text-bram-primary' : ''}`} />
                                                 </button>
 
-                                                {/* Dropdown Menu (Ανοίγει από κάτω) */}
+                                                {/* Dropdown Menu Cloud */}
                                                 {isCloudMenuOpen && (
-                                                    <div className="absolute top-full left-0 right-0 mt-1 rounded-lg border overflow-hidden shadow-2xl z-50"
-                                                         style={{ backgroundColor: '#2d2d2d', borderColor: '#404040' }}>
+                                                    <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-bram-border bg-bram-surface shadow-xl z-50 overflow-hidden">
                                                         {CLOUD_PROVIDERS.map(opt => (
                                                             <button
                                                                 key={opt.id}
-                                                                className="w-full flex items-center gap-3 px-3 py-3 transition-colors outline-none"
-                                                                style={{
-                                                                    backgroundColor: selectedCloud === opt.id ? '#3d3d3d' : 'transparent',
-                                                                    borderBottom: '1px solid #404040'
-                                                                }}
-                                                                // Hover εφέ με JS για να ταιριάζει στο inline styling
-                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3d3d3d'}
-                                                                onMouseLeave={(e) => {
-                                                                    if (selectedCloud !== opt.id) e.currentTarget.style.backgroundColor = 'transparent';
-                                                                }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedCloud(opt.id);
-                                                                    setIsCloudMenuOpen(false);
-                                                                }}
+                                                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors outline-none
+                                                                    ${selectedCloud === opt.id ? 'bg-green-50 text-bram-primary' : 'text-bram-text-main hover:bg-slate-50'}`}
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}
                                                             >
                                                                 <opt.icon />
-                                                                <span className="text-sm text-white">{opt.label}</span>
+                                                                <span>{opt.label}</span>
                                                             </button>
                                                         ))}
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {/* Confirm/Cancel Buttons */}
-                                            <div className="flex gap-2">
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-3">
                                                 <button
-                                                    className="flex-1 px-2 py-2 rounded-lg transition-opacity hover:opacity-80"
-                                                    style={{ backgroundColor: '#2d2d2d', color: '#e5e5e5', fontSize: '0.875rem' }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedRepoId(null);
-                                                        setIsCloudMenuOpen(false);
-                                                    }}
+                                                    className="flex-1 px-4 py-2.5 rounded-xl border border-bram-border text-bram-text-main font-medium transition-colors hover:bg-slate-50"
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedRepoId(null); setIsCloudMenuOpen(false); }}
                                                 >
                                                     Cancel
                                                 </button>
                                                 <button
-                                                    className="flex-1 px-2 py-2 rounded-lg transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
-                                                    style={{ backgroundColor: '#6366f1', color: 'white', fontSize: '0.875rem' }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleConfirmAnalysis(repo);
-                                                    }}
+                                                    className="flex-1 px-4 py-2.5 rounded-xl bg-bram-primary text-white font-medium transition-colors hover:bg-bram-primary-hover flex items-center justify-center gap-2 shadow-sm"
+                                                    onClick={(e) => { e.stopPropagation(); handleConfirmAnalysis(repo); }}
                                                     disabled={isAnalyzing}
                                                 >
-                                                    {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : 'Confirm'}
+                                                    {isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : 'Confirm'}
                                                 </button>
                                             </div>
+
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Separator */}
+                                {/* Divider Line */}
                                 {index < repos.length - 1 && !isSelected && selectedRepoId !== repos[index + 1]?.id && (
-                                    <div className="mx-4" style={{ height: '1px', backgroundColor: '#404040' }} />
+                                    <div className="mx-5 h-px bg-bram-border" />
                                 )}
                             </div>
                         );
@@ -349,31 +288,14 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Logout Button Card */}
+            {/* Logout Button */}
             <div className="w-full max-w-md">
                 <button
-                    className="w-full px-4 py-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:border-red-500"
-                    style={{ backgroundColor: '#2d2d2d', border: '1px solid #404040' }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#3d1f1f';
-                        e.currentTarget.style.borderColor = '#ef4444';
-                        const icon = e.currentTarget.querySelector('svg');
-                        const text = e.currentTarget.querySelector('span');
-                        if (icon) icon.style.color = '#ef4444';
-                        if (text) text.style.color = '#ef4444';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#2d2d2d';
-                        e.currentTarget.style.borderColor = '#404040';
-                        const icon = e.currentTarget.querySelector('svg');
-                        const text = e.currentTarget.querySelector('span');
-                        if (icon) icon.style.color = '#ef4444';
-                        if (text) text.style.color = 'white';
-                    }}
+                    className="w-full px-4 py-3.5 rounded-xl flex items-center justify-center gap-3 font-medium transition-all text-bram-text-muted bg-transparent border border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200"
                     onClick={handleLogout}
                 >
-                    <LogOut size={20} color="#ef4444" />
-                    <span className="text-white">Logout</span>
+                    <LogOut size={20} />
+                    <span>Logout</span>
                 </button>
             </div>
         </div>
