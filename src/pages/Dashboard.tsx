@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 // ----------------------------------------------------------------------
-// 1. DATA TYPES & ICONS (AWS, GCP, Azure)
+// 1. DATA TYPES & ICONS
 // ----------------------------------------------------------------------
 interface Repo {
     id: number;
@@ -157,11 +157,11 @@ export default function Dashboard() {
     // 3. RENDERING
     // ----------------------------------------------------------------------
     return (
-        /* h-screen και overflow-hidden για να μην κουνιέται η σελίδα */
-        <div className="h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans overflow-hidden">
+        /* ΑΛΛΑΓΗ: min-h-screen αντί για h-screen και αφαιρέθηκε το overflow-hidden */
+        <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans">
 
-            {/* Fixed Header Area */}
-            <div className="w-full flex flex-col items-center pt-8 px-4 flex-shrink-0">
+            {/* Header Area */}
+            <div className="w-full flex flex-col items-center pt-12 px-4">
                 {/* User Pill */}
                 <div className="w-full max-w-lg mb-8 flex justify-center">
                     <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border-2 border-bram-border bg-white shadow-sm">
@@ -171,19 +171,16 @@ export default function Dashboard() {
                 </div>
 
                 {/* Header Branding (Vortex is Green) */}
-                <div className="text-center mb-10">
-                    <h1 className="text-6xl font-black mb-2 tracking-tighter text-bram-text-main">
+                <div className="text-center mb-16">
+                    <h1 className="text-6xl font-black mb-3 tracking-tighter text-bram-text-main">
                         Bram <span className="text-bram-primary">Vortex</span>
                     </h1>
                     <p className="text-bram-text-muted font-bold text-xl tracking-tight uppercase">Infrastructure Portal</p>
                 </div>
             </div>
 
-            {/* Scrollable Repository List - flex-1 και overflow-y-auto */}
-            <div
-                ref={listRef}
-                className="w-full max-w-xl flex-1 overflow-y-auto px-6 pb-12 flex flex-col gap-6 scrollbar-hide"
-            >
+            {/* ΑΛΛΑΓΗ: Η λίστα δεν είναι πλέον flex-1 ούτε overflow-y-auto */}
+            <div ref={listRef} className="w-full max-w-xl px-6 flex flex-col gap-6 mb-12">
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
@@ -325,10 +322,10 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Fixed Logout Section - flex-shrink-0 */}
-            <div className="w-full max-w-lg pb-10 flex-shrink-0 flex justify-center px-6">
+            {/* Logout Section - Πάντα στο τέλος της σελίδας */}
+            <div className="w-full max-w-lg pb-20 flex justify-center px-6">
                 <button
-                    className="w-full px-8 py-5 rounded-[2.5rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
+                    className="w-full px-8 py-5 rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
                     onClick={handleLogout}
                 >
                     <LogOut size={22} className="rotate-180" />
