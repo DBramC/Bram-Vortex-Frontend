@@ -3,7 +3,7 @@ import axios from 'axios';
 const api = axios.create({
     // ΑΛΛΑΓΗ ΕΔΩ: Χρησιμοποιούμε το /api ως πρόθεμα (ή το http://localhost/api)
     // Το '/api' είναι πιο δυναμικό, δουλεύει και αν το ανεβάσεις σε κανονικό domain!
-    baseURL: '/api',
+    baseURL: '/',
     headers: {
         'Content-Type': 'application/json',
     },

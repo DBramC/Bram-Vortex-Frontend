@@ -20,7 +20,7 @@ const AnalyzedRepo: React.FC = () => {
         const fetchJobStatus = async () => {
             try {
                 // Προσάρμοσε το URL στο πραγματικό σου endpoint
-                const response = await api.get(`/api/dashboard/jobs/${jobId}`);
+                const response = await api.get(`/dashboard/jobs/${jobId}`);
                 setJob(response.data);
             } catch (error) {
                 console.error("Error fetching job status", error);
