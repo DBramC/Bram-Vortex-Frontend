@@ -2,8 +2,8 @@
 
 @theme {
     /* Φόντο: Mint/Emerald tint */
-    --color-bram-bg: #63ed8f;
-    --color-bram-surface: #def8e2; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
+    --color-bram-bg: #d1ffde;
+    --color-bram-surface: #d2ecce; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
 
     /* Header Glass Effect */
     --color-bram-header: #def8e2;
