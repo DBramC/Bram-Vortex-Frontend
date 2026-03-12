@@ -2,16 +2,16 @@
 
 @theme {
     /* Φόντο: Το συγκεκριμένο "Hacking Green" #074219 */
-    --color-bram-bg: #074219;
+    --color-bram-bg: #0e9e3a;
     --color-bram-surface: #ffffff;
 
     /* Primary: Ζωντανό Emerald Green για αντίθεση μέσα στις κάρτες */
-    --color-bram-primary: #074219;
-    --color-bram-primary-hover: #108c35;
+    --color-bram-primary: #0e9e3a;
+    --color-bram-primary-hover: #5fcf81;
     --color-bram-primary-soft: rgba(16, 185, 129, 0.1);
 
     /* Accent: Blue για λεπτομέρειες (π.χ. το profile icon) */
-    --color-bram-accent: #12b144;
+    --color-bram-accent: #0e9e3a;
     --color-bram-accent-light: #eff6ff;
 
     /* Terminal Colors */
