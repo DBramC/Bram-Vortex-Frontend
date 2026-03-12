@@ -1,41 +1,32 @@
 @import "tailwindcss";
 
-/* --- ΟΡΙΣΜΟΣ ΘΕΜΑΤΟΣ ΓΙΑ TAILWIND v4 --- */
 @theme {
-    /* Εδώ δηλώνουμε τα χρώματα ώστε να τα βλέπει το Tailwind */
-    --color-background: #1a1a1a;
-    --color-foreground: #ffffff;
+    /* Φόντο: Πολύ αχνό Μπλε-Γκρι (Slate) για "αέρα" */
+    --color-bram-bg: #f1f5f9;
 
-    --color-card: #2d2d2d;
-    --color-card-border: #404040;
+    /* Κάρτες: Καθαρό Λευκό */
+    --color-bram-surface: #ffffff;
 
-    --color-primary: #6366f1; /* Indigo */
-    --color-danger: #ef4444;  /* Red */
+    /* Primary: Το Πράσινο της επιτυχίας (Emerald) */
+    --color-bram-primary: #10b981;
+    --color-bram-primary-hover: #059669;
 
-    /* Sidebar Specifics (αν χρειάζονται) */
-    --color-sidebar: #1a1a1a;
+    /* Accent: Επαγγελματικό Μπλε (Royal Blue) */
+    --color-bram-accent: #2563eb;
+    --color-bram-accent-light: #dbeafe;
+
+    /* Κείμενο: Πολύ σκούρο Navy (για να μη "χτυπάει" το μαύρο) */
+    --color-bram-text-main: #1e293b;
+    --color-bram-text-muted: #64748b;
+
+    /* Borders: Απαλό γκρι */
+    --color-bram-border: #e2e8f0;
 }
 
-/* --- ΒΑΣΙΚΑ STYLES (RESET) --- */
-:root {
-    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-    font-weight: 400;
-
-    /* Εφαρμογή των μεταβλητών */
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-}
-
-/* Fix για να πιάνει όλο το ύψος */
-html, body, #root {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    min-width: 320px;
-    min-height: 100vh;
+/* Εφαρμογή στο σώμα της σελίδας */
+@layer base {
+    body {
+        @apply bg-bram-bg text-bram-text-main antialiased;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
 }
