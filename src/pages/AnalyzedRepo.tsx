@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axiosInstance from '../api/axiosInstance'; // Το δικό σου axios instance
+import axiosInstance from '../api/axiosInstance';
+import api from "../api/axiosInstance"; // Το δικό σου axios instance
 
 interface AnalysisJob {
     jobId: string;
@@ -20,7 +21,7 @@ const AnalyzedRepo: React.FC = () => {
         const fetchJobStatus = async () => {
             try {
                 // Προσάρμοσε το URL στο πραγματικό σου endpoint
-                const response = await axiosInstance.get(`/dashboard/jobs/${jobId}`);
+                const response = await api.get(`/api/dashboard/jobs/${jobId}`);
                 setJob(response.data);
             } catch (error) {
                 console.error("Error fetching job status", error);
