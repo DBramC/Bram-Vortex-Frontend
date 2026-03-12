@@ -1,27 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-    /* Φόντο: Ένα πολύ ελαφρύ, φρέσκο πράσινο (Mint/Emerald tint) */
-    --color-bram-bg: #b4e4c3;
-    --color-bram-surface: #b5d5fa;
+    /* Φόντο: Mint/Emerald tint */
+    --color-bram-bg: #c9ede6;
+    --color-bram-surface: #ffffff; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
+
+    /* Header Glass Effect */
+    --color-bram-header: rgba(255, 255, 255, 0.7);
 
     /* Primary: Το Πράσινο της δράσης */
     --color-bram-primary: #059669;
     --color-bram-primary-hover: #047857;
+    --color-bram-primary-soft: rgba(5, 150, 105, 0.1); /* Για το φόντο των dropdowns */
 
     /* Accent: Το Μπλε της τεχνολογίας */
-    --color-bram-accent: #2563eb;
+    --color-bram-accent: #0847d8;
     --color-bram-accent-light: #eff6ff;
 
-    /* TERMINAL COLORS (ΝΕΟ) */
-    --color-terminal-bg: #0f172a;       /* Σκούρο Navy/Gray */
-    --color-terminal-prompt: #10b981;   /* Πράσινο κείμενο */
-    --color-terminal-blueprint: #3b82f6; /* Μπλε κείμενο */
+    /* TERMINAL COLORS */
+    --color-terminal-bg: #0f172a;
+    --color-terminal-prompt: #10b981;
+    --color-terminal-blueprint: #3b82f6;
 
     /* Κείμενο & Borders */
     --color-bram-text-main: #020617;
     --color-bram-text-muted: #475569;
-    --color-bram-border: #0074ff;
+
+    /* Το κεντρικό border της σελίδας */
+    --color-bram-border: #cbd5e1;
 }
 
 @layer base {

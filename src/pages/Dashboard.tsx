@@ -6,9 +6,7 @@ import {
     ChevronDown, Server, Box, Network
 } from 'lucide-react';
 
-// ----------------------------------------------------------------------
-// 1. DATA TYPES & ICONS
-// ----------------------------------------------------------------------
+// --- DATA TYPES & ICONS (AWS, GCP, Azure κλπ παραμένουν ίδια) ---
 interface Repo {
     id: number;
     name: string;
@@ -60,21 +58,14 @@ const COMPUTE_OPTIONS = [
 
 export default function Dashboard() {
     const navigate = useNavigate();
-
-    // ----------------------------------------------------------------------
-    // 2. STATE & LOGIC
-    // ----------------------------------------------------------------------
     const [repos, setRepos] = useState<Repo[]>([]);
     const [username, setUsername] = useState<string>("User");
     const [isLoadingRepos, setIsLoadingRepos] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
-
     const [selectedCloud, setSelectedCloud] = useState<string>('AWS');
     const [isCloudMenuOpen, setIsCloudMenuOpen] = useState(false);
-
     const [selectedCompute, setSelectedCompute] = useState<string>('Container');
     const [isComputeMenuOpen, setIsComputeMenuOpen] = useState(false);
 
@@ -97,16 +88,11 @@ export default function Dashboard() {
 
     useEffect(() => {
         const token = localStorage.getItem('jwt_token');
-        if (!token) {
-            navigate('/', { replace: true });
-            return;
-        }
+        if (!token) { navigate('/', { replace: true }); return; }
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             setUsername(payload.sub || payload.username || "User");
-        } catch (e) {
-            console.error("Error decoding token", e);
-        }
+        } catch (e) { console.error("Error decoding token", e); }
         fetchRepositories();
     }, [navigate]);
 
@@ -114,183 +100,124 @@ export default function Dashboard() {
         try {
             setIsLoadingRepos(true);
             const response = await api.get<Repo[]>('/dashboard/repos');
-            if (Array.isArray(response.data)) {
-                setRepos(response.data);
-            } else {
-                setRepos([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch repos", error);
-            setRepos([]);
-        } finally {
-            setIsLoadingRepos(false);
-        }
+            setRepos(Array.isArray(response.data) ? response.data : []);
+        } catch (error) { console.error("Failed to fetch repos", error); setRepos([]);
+        } finally { setIsLoadingRepos(false); }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('jwt_token');
-        navigate('/', { replace: true });
-    };
+    const handleLogout = () => { localStorage.removeItem('jwt_token'); navigate('/', { replace: true }); };
 
     const handleConfirmAnalysis = async (repo: Repo) => {
         try {
             setIsAnalyzing(true);
-            const requestBody = {
-                repoId: repo.id,
-                repoName: repo.name,
-                repoUrl: repo.html_url,
-                cloudProvider: selectedCloud,
-                computePreference: selectedCompute
-            };
-            const response = await api.post('/dashboard/analyze', requestBody);
+            const response = await api.post('/dashboard/analyze', {
+                repoId: repo.id, repoName: repo.name, repoUrl: repo.html_url,
+                cloudProvider: selectedCloud, computePreference: selectedCompute
+            });
             setSelectedRepoId(null);
             navigate(`/analyzed-repo/${response.data}`);
-        } catch (error) {
-            console.error("Analysis failed:", error);
-            alert("❌ Σφάλμα κατά την έναρξη της ανάλυσης.");
-        } finally {
-            setIsAnalyzing(false);
-        }
+        } catch (error) { console.error("Analysis failed:", error); alert("❌ Σφάλμα κατά την έναρξη της ανάλυσης.");
+        } finally { setIsAnalyzing(false); }
     };
 
-    // ----------------------------------------------------------------------
-    // 3. RENDERING
-    // ----------------------------------------------------------------------
     return (
-        /* ΑΛΛΑΓΗ: min-h-screen αντί για h-screen και αφαιρέθηκε το overflow-hidden */
         <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans">
 
-            {/* Header Area */}
-            <div className="w-full flex flex-col items-center pt-12 px-4">
-                {/* User Pill */}
-                <div className="w-full max-w-lg mb-8 flex justify-center">
-                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border-2 border-bram-border bg-white shadow-sm">
-                        <CircleUser size={20} className="text-bram-accent" />
-                        <span className="font-black text-sm tracking-tight text-bram-text-main">{username}</span>
+            {/* HEADER AREA - Προστέθηκε το background contrast header */}
+            <div className="w-full flex flex-col items-center pt-12 px-4 sticky top-0 z-[60]">
+                <div className="w-full max-w-2xl bg-white/70 backdrop-blur-md px-8 py-8 rounded-[3rem] border-2 border-white/50 shadow-xl flex flex-col items-center">
+                    {/* User Pill */}
+                    <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-bram-border bg-white shadow-sm mb-6">
+                        <CircleUser size={18} className="text-bram-accent" />
+                        <span className="font-black text-xs tracking-tight text-bram-text-main">{username}</span>
                     </div>
-                </div>
 
-                {/* Header Branding (Vortex is Green) */}
-                <div className="text-center mb-16">
-                    <h1 className="text-6xl font-black mb-3 tracking-tighter text-bram-text-main">
-                        Bram <span className="text-bram-primary">Vortex</span>
-                    </h1>
-                    <p className="text-bram-text-muted font-bold text-xl tracking-tight uppercase">Infrastructure Portal</p>
+                    {/* Header Branding */}
+                    <div className="text-center">
+                        <h1 className="text-6xl font-black mb-1 tracking-tighter text-bram-text-main">
+                            Bram <span className="text-bram-primary">Vortex</span>
+                        </h1>
+                        <p className="text-bram-text-muted font-black text-sm tracking-[0.2em] uppercase">Infrastructure Portal</p>
+                    </div>
                 </div>
             </div>
 
-            {/* ΑΛΛΑΓΗ: Η λίστα δεν είναι πλέον flex-1 ούτε overflow-y-auto */}
-            <div ref={listRef} className="w-full max-w-xl px-6 flex flex-col gap-6 mb-12">
+            {/* REPOSITORY LIST */}
+            <div ref={listRef} className="w-full max-w-xl px-6 flex flex-col gap-6 mt-16 mb-12">
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
                         <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs">Fetching repositories...</p>
                     </div>
-                ) : repos.length === 0 ? (
-                    <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
-                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs">No repositories found.</p>
-                    </div>
                 ) : (
                     repos.map((repo) => {
                         const isSelected = selectedRepoId === repo.id;
-
                         const selectedCloudObj = CLOUD_PROVIDERS.find(c => c.id === selectedCloud);
                         const SelectedCloudIcon = selectedCloudObj?.icon || Box;
                         const selectedComputeObj = COMPUTE_OPTIONS.find(c => c.id === selectedCompute);
                         const SelectedComputeIcon = selectedComputeObj?.icon || Box;
 
                         return (
-                            /* Η επιλεγμένη κάρτα παίρνει δυναμικά z-50 για να μην την καλύπτουν οι από κάτω */
                             <div key={repo.id} className={`relative transition-all duration-300 ${isSelected ? 'z-50' : 'z-10'}`}>
-                                <div
-                                    className={`
-                                        group transition-all duration-500 ease-out rounded-[2.5rem] border-2
-                                        ${isSelected
-                                        ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)]'
-                                        : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02] hover:shadow-lg'
-                                    }
-                                    `}
-                                >
-                                    <button
-                                        className="w-full px-8 py-6 flex items-center gap-6 outline-none cursor-pointer"
-                                        onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}
-                                    >
-                                        <div className={`
-                                            flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors
-                                            ${isSelected ? 'bg-green-50 text-bram-primary' : 'bg-bram-accent-light text-bram-accent'}
-                                        `}>
+                                <div className={`group transition-all duration-500 ease-out rounded-[2.5rem] border-2
+                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.05] shadow-2xl' : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02]'}`}>
+
+                                    <button className="w-full px-8 py-6 flex items-center gap-6 outline-none" onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}>
+                                        <div className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors
+                                            ${isSelected ? 'bg-green-50 text-bram-primary' : 'bg-bram-accent-light text-bram-accent'}`}>
                                             <Code size={32} strokeWidth={2.5} />
                                         </div>
-
                                         <div className="flex-1 text-left">
-                                            <div className={`font-black truncate text-2xl tracking-tighter ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>
-                                                {repo.name}
-                                            </div>
-                                            <div className="text-bram-text-muted text-xs font-black uppercase tracking-[0.2em] mt-1">
-                                                {repo.language || 'Code'} • {repo.private ? 'Private' : 'Public'}
-                                            </div>
+                                            <div className={`font-black truncate text-2xl tracking-tighter ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>{repo.name}</div>
+                                            <div className="text-bram-text-muted text-xs font-black uppercase tracking-[0.2em] mt-1">{repo.language || 'Code'} • {repo.private ? 'Private' : 'Public'}</div>
                                         </div>
-
-                                        <ChevronRight
-                                            size={28}
-                                            className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`}
-                                        />
+                                        <ChevronRight size={28} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
                                     </button>
 
                                     {isSelected && (
                                         <div className="px-8 pb-8 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <div className="h-0.5 bg-bram-border mb-8 w-full opacity-40" />
+                                            <div className="h-px bg-bram-primary/20 mb-8 w-full" />
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-                                                {/* Target Cloud Dropdown */}
+                                                {/* Target Cloud Dropdown - ΠΡΑΣΙΝΑ ΠΕΡΙΓΡΑΜΜΑΤΑ */}
                                                 <div className="relative">
-                                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-text-muted">Target Cloud</label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.stopPropagation(); setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
-                                                        className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-slate-50/50
-                                                            ${isCloudMenuOpen ? 'border-bram-accent' : 'border-bram-border hover:border-slate-400'}`}
-                                                    >
+                                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Target Cloud</label>
+                                                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
+                                                            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-green-50/30
+                                                            ${isCloudMenuOpen ? 'border-bram-primary ring-4 ring-bram-primary/10' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-3">
                                                             <SelectedCloudIcon />
                                                             <span className="text-sm font-black text-bram-text-main">{selectedCloudObj?.label}</span>
                                                         </div>
-                                                        <ChevronDown size={18} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
+                                                        <ChevronDown size={18} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
                                                     </button>
                                                     {isCloudMenuOpen && (
-                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-[100] overflow-hidden">
+                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {CLOUD_PROVIDERS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors font-black text-sm text-bram-text-main"
-                                                                        onClick={(e) => { e.stopPropagation(); setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}>
-                                                                    <opt.icon /> {opt.label}
-                                                                </button>
+                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-green-50 transition-colors font-black text-sm text-bram-text-main"
+                                                                        onClick={(e) => { e.stopPropagation(); setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}><opt.icon /> {opt.label}</button>
                                                             ))}
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                {/* Compute Infra Dropdown */}
+                                                {/* Infrastructure Dropdown - ΠΡΑΣΙΝΑ ΠΕΡΙΓΡΑΜΜΑΤΑ */}
                                                 <div className="relative">
-                                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-text-muted">Infrastructure</label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.stopPropagation(); setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
-                                                        className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-slate-50/50
-                                                            ${isComputeMenuOpen ? 'border-bram-accent' : 'border-bram-border hover:border-slate-400'}`}
-                                                    >
+                                                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Infrastructure</label>
+                                                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
+                                                            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-green-50/30
+                                                            ${isComputeMenuOpen ? 'border-bram-primary ring-4 ring-bram-primary/10' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-3">
-                                                            <SelectedComputeIcon size={20} className="text-bram-accent" />
+                                                            <SelectedComputeIcon size={20} className="text-bram-primary" />
                                                             <span className="text-sm font-black text-bram-text-main">{selectedComputeObj?.label}</span>
                                                         </div>
-                                                        <ChevronDown size={18} className={`transition-transform duration-300 ${isComputeMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
+                                                        <ChevronDown size={18} className={`transition-transform duration-300 ${isComputeMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
                                                     </button>
                                                     {isComputeMenuOpen && (
-                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-[100] overflow-hidden">
+                                                        <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {COMPUTE_OPTIONS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors font-black text-sm text-bram-text-main"
-                                                                        onClick={(e) => { e.stopPropagation(); setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}>
-                                                                    <opt.icon size={20} className="text-bram-accent" /> {opt.label}
-                                                                </button>
+                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-green-50 transition-colors font-black text-sm text-bram-text-main"
+                                                                        onClick={(e) => { e.stopPropagation(); setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}><opt.icon size={20} className="text-bram-primary" /> {opt.label}</button>
                                                             ))}
                                                         </div>
                                                     )}
@@ -299,19 +226,11 @@ export default function Dashboard() {
 
                                             {/* Action Buttons */}
                                             <div className="flex gap-4">
-                                                <button
-                                                    className="px-8 py-4.5 rounded-xl border-2 border-bram-border font-black text-sm uppercase tracking-widest text-bram-text-muted hover:bg-slate-50 transition-all"
-                                                    onClick={(e) => { e.stopPropagation(); setSelectedRepoId(null); }}
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleConfirmAnalysis(repo); }}
-                                                    disabled={isAnalyzing}
-                                                    className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-green-200 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-tighter"
-                                                >
-                                                    {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : 'Generate Infrastructure'}
-                                                </button>
+                                                <button className="px-8 py-4.5 rounded-xl border-2 border-bram-primary/40 font-black text-sm uppercase tracking-widest text-bram-primary hover:bg-green-50 transition-all"
+                                                        onClick={(e) => { e.stopPropagation(); setSelectedRepoId(null); }}>Cancel</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleConfirmAnalysis(repo); }} disabled={isAnalyzing}
+                                                        className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-green-200 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-tighter">
+                                                    {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : 'Generate Infrastructure'}</button>
                                             </div>
                                         </div>
                                     )}
@@ -322,15 +241,10 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Logout Section - Πάντα στο τέλος της σελίδας */}
+            {/* Logout Section */}
             <div className="w-full max-w-lg pb-20 flex justify-center px-6">
-                <button
-                    className="w-full px-8 py-5 rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
-                    onClick={handleLogout}
-                >
-                    <LogOut size={22} className="rotate-180" />
-                    <span>Terminate Session</span>
-                </button>
+                <button className="w-full px-8 py-5 rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm" onClick={handleLogout}>
+                    <LogOut size={22} className="rotate-180" /><span>Terminate Session</span></button>
             </div>
         </div>
     );
