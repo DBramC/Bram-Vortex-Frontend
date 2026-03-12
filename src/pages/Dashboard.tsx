@@ -150,7 +150,7 @@ export default function Dashboard() {
                     {/* Title Group Right */}
                     <div className="flex flex-col border-l-2 border-bram-primary/20 pl-7">
                         <h1 className="text-4xl font-black tracking-tighter leading-tight">
-                            Bram <span className="text-bram-primary">Vortex</span>
+                            Bram <span className="text-bram-bg">Vortex</span>
                         </h1>
                         <p className="text-bram-text-muted font-black text-[10px] tracking-[0.25em] uppercase mt-0.5">Infrastructure Portal</p>
                     </div>

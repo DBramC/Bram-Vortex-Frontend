@@ -6,9 +6,9 @@
     --color-bram-surface: #ffffff;
 
     /* Primary: Ζωντανό Emerald Green για αντίθεση μέσα στις κάρτες */
-    --color-bram-primary: #0e9e3a;
-    --color-bram-primary-hover: #187031;
-    --color-bram-primary-soft: rgba(16, 185, 129, 0.1);
+    --color-bram-primary: #027a26;
+    --color-bram-primary-hover: #064e1b;
+    --color-bram-primary-soft: rgba(18, 147, 57, 0.75);
 
     /* Accent: Blue για λεπτομέρειες (π.χ. το profile icon) */
     --color-bram-accent: #0e9e3a;
@@ -19,7 +19,6 @@
     --color-terminal-prompt: #10b981;
     --color-terminal-blueprint: #3b82f6;
 
-    --text-bram-primary: #0d5e25;
 
     /* Κείμενο & Borders */
     --color-bram-text-main: #020617;
