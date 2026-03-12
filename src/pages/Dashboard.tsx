@@ -142,19 +142,32 @@ export default function Dashboard() {
     const handleConfirmAnalysis = async (repo: Repo) => {
         try {
             setIsAnalyzing(true);
+
+            // 1. Φτιάχνουμε το request body με ΟΛΕΣ τις επιλογές του χρήστη
+            let selectedCompute;
             const requestBody = {
                 repoId: repo.id,
                 repoName: repo.name,
                 repoUrl: repo.html_url,
-                cloudProvider: selectedCloud // Στέλνουμε το επιλεγμένο cloud στο Backend!
+                cloudProvider: selectedCloud,
+                computePreference: selectedCompute // <-- ΝΕΟ: Στέλνουμε αν θέλει VM, Container ή K8s
             };
+
+            // 2. Κάνουμε την κλήση στο API
             const response = await api.post('/dashboard/analyze', requestBody);
 
+            // 3. Καθαρίζουμε την επιλογή στο UI
             setSelectedRepoId(null);
-            alert(`✅ Η ανάλυση για ${selectedCloud} ξεκίνησε!\nJob ID: ${response.data}`);
+
+            // 4. <-- ΤΕΛΟΣ ΤΑ ALERTS! -->
+            // Αντί για alert, χρησιμοποιούμε το navigate για να πάμε τον χρήστη
+            // κατευθείαν στη σελίδα που δείχνει το Live Loading.
+            // Το response.data είναι το jobId που μόλις μας έστειλε η Java!
+            navigate(`/analyzed-repo/${response.data}`);
+
         } catch (error) {
             console.error("Analysis failed:", error);
-            alert("❌ Σφάλμα: Η ανάλυση δεν μπόρεσε να ξεκινήσει.");
+            alert("❌ Σφάλμα: Η ανάλυση δεν μπόρεσε να ξεκινήσει. Ελέγξτε τα logs του server.");
         } finally {
             setIsAnalyzing(false);
         }

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation }
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
+import AnalyzedRepo from './pages/AnalyzedRepo';
 
 const RequireAuth = () => {
     const token = localStorage.getItem('jwt_token');
@@ -25,6 +26,7 @@ function App() {
                 {/* Protected Routes */}
                 <Route element={<RequireAuth />}>
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/analyzed-repo/:jobId" element={<AnalyzedRepo />} />
                 </Route>
 
                 {/* Catch All */}
