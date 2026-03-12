@@ -6,7 +6,7 @@ import {
     ChevronDown, Server, Box, Network
 } from 'lucide-react';
 
-// --- DATA TYPES & ICONS (AWS, GCP, Azure ίδια) ---
+// --- DATA TYPES & ICONS ---
 interface Repo {
     id: number;
     name: string;
@@ -76,14 +76,14 @@ export default function Dashboard() {
         setIsComputeMenuOpen(false);
     }, [selectedRepoId]);
 
-    // --- GRHGORO AUTO-CENTER LOGIC ---
+    // Fast Auto-Center Logic
     useEffect(() => {
         if (selectedRepoId !== null) {
             const element = repoRefs.current.get(selectedRepoId);
             if (element) {
                 setTimeout(() => {
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100); // 100ms για αστραπιαία κίνηση
+                }, 100);
             }
         }
     }, [selectedRepoId]);
@@ -137,11 +137,11 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans pb-32">
 
-            {/* HEADER AREA - Πλέον μοιάζει με κάρτα Repo για ομοιομορφία */}
+            {/* HEADER AREA - Στυλ Card ομοιόμορφο με τα Repos */}
             <div className="w-full flex flex-col items-center pt-16 px-6">
-                <div className="w-full max-w-xl bg-white border-2 border-bram-border rounded-[2.5rem] px-8 py-7 shadow-xl flex items-center gap-6">
+                <div className="w-full max-w-xl bg-white border-2 border-bram-border rounded-[2.5rem] px-8 py-7 shadow-2xl flex items-center gap-6">
 
-                    {/* Profile Bubble - Τώρα Αριστερά */}
+                    {/* Profile Bubble Left */}
                     <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full border border-bram-border bg-slate-50 shadow-sm shrink-0">
                         <CircleUser size={22} className="text-bram-accent" />
                         <span className="font-black text-sm tracking-tight">{username}</span>
@@ -161,7 +161,7 @@ export default function Dashboard() {
             <div className="w-full max-w-xl px-6 flex flex-col gap-6 mt-12">
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
-                        <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
+                        <Loader2 className="animate-spin mx-auto mb-4 text-bram-primary" size={48} />
                         <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs">Fetching repositories...</p>
                     </div>
                 ) : (
@@ -180,11 +180,11 @@ export default function Dashboard() {
                                 className={`relative transition-all duration-500 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
                             >
                                 <div className={`group transition-all duration-500 ease-out rounded-[2.5rem] border-2
-                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)]' : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02]'}`}>
+                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]' : 'bg-white border-bram-border hover:border-bram-primary/40 hover:scale-[1.02]'}`}>
 
                                     <div className="w-full px-8 py-6 flex items-center gap-6">
                                         <div className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors
-                                            ${isSelected ? 'bg-bram-primary-soft text-bram-primary' : 'bg-bram-accent-light text-bram-accent'}`}>
+                                            ${isSelected ? 'bg-bram-primary-soft text-bram-primary' : 'bg-slate-50 text-slate-400'}`}>
                                             <Code size={32} strokeWidth={2.5} />
                                         </div>
                                         <div className="flex-1 text-left">
@@ -196,7 +196,7 @@ export default function Dashboard() {
 
                                     {isSelected && (
                                         <div className="px-8 pb-8 pt-2 animate-in fade-in slide-in-from-top-4 duration-500" onClick={(e) => e.stopPropagation()}>
-                                            <div className="h-px bg-bram-primary opacity-20 mb-8 w-full" />
+                                            <div className="h-px bg-bram-primary/10 mb-8 w-full" />
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
                                                 {/* Target Cloud */}
@@ -204,7 +204,7 @@ export default function Dashboard() {
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Target Cloud</label>
                                                     <button type="button" onClick={() => { setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
                                                             className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-bram-primary-soft/30
-                                                            ${isCloudMenuOpen ? 'border-bram-primary ring-4 ring-bram-primary/10' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
+                                                            ${isCloudMenuOpen ? 'border-bram-primary shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-3">
                                                             <SelectedCloudIcon />
                                                             <span className="text-sm font-black text-bram-text-main">{selectedCloudObj?.label}</span>
@@ -226,7 +226,7 @@ export default function Dashboard() {
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Infrastructure</label>
                                                     <button type="button" onClick={() => { setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
                                                             className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-bram-primary-soft/30
-                                                            ${isComputeMenuOpen ? 'border-bram-primary ring-4 ring-bram-primary/10' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
+                                                            ${isComputeMenuOpen ? 'border-bram-primary shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-3">
                                                             <SelectedComputeIcon size={20} className="text-bram-primary" />
                                                             <span className="text-sm font-black text-bram-text-main">{selectedComputeObj?.label}</span>
@@ -245,10 +245,10 @@ export default function Dashboard() {
                                             </div>
 
                                             <div className="flex gap-4">
-                                                <button className="px-8 py-4.5 rounded-xl border-2 border-bram-primary/40 font-black text-sm uppercase tracking-widest text-bram-primary hover:bg-bram-primary-soft transition-all"
+                                                <button className="px-8 py-4.5 rounded-xl border-2 border-bram-primary/30 font-black text-sm uppercase tracking-widest text-bram-primary hover:bg-bram-primary-soft transition-all"
                                                         onClick={() => setSelectedRepoId(null)}>Cancel</button>
                                                 <button onClick={() => handleConfirmAnalysis(repo)} disabled={isAnalyzing}
-                                                        className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-green-200 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase">
+                                                        className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-emerald-400 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase">
                                                     {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : 'Generate Infrastructure'}</button>
                                             </div>
                                         </div>
@@ -262,7 +262,7 @@ export default function Dashboard() {
 
             {/* Logout Section */}
             <div className="w-full max-w-xl mt-20 flex justify-center px-6">
-                <button className="w-full px-8 py-5 rounded-[2.5rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-white/50 bg-white/5 border-2 border-white/10 hover:bg-red-500 hover:text-white hover:border-red-600 shadow-sm" onClick={handleLogout}>
+                <button className="w-full px-8 py-5 rounded-[2.5rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-white/40 bg-white/5 border-2 border-white/10 hover:bg-red-500 hover:text-white hover:border-red-600 shadow-sm" onClick={handleLogout}>
                     <LogOut size={22} className="rotate-180" /><span>Terminate Session</span></button>
             </div>
         </div>

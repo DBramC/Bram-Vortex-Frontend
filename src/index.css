@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-    /* Φόντο: Ένα πιο στιβαρό, "tech" πράσινο για υψηλό contrast με το λευκό */
-    --color-bram-bg: #064e3b; /* Deep Emerald / Hacking Green */
+    /* Φόντο: Το συγκεκριμένο "Hacking Green" #074219 */
+    --color-bram-bg: #074219;
     --color-bram-surface: #ffffff;
 
-    /* Primary: Το ζωντανό πράσινο του Vortex */
-    --color-bram-primary: #064e3b;
-    --color-bram-primary-hover: #5bcf56;
-    --color-bram-primary-soft: rgba(22, 185, 16, 0.1);
+    /* Primary: Ζωντανό Emerald Green για αντίθεση μέσα στις κάρτες */
+    --color-bram-primary: #10b981;
+    --color-bram-primary-hover: #059669;
+    --color-bram-primary-soft: rgba(16, 185, 129, 0.1);
 
-    /* Accent: Το Μπλε της τεχνολογίας */
-    --color-bram-accent: #0847d8;
+    /* Accent: Blue για λεπτομέρειες (π.χ. το profile icon) */
+    --color-bram-accent: #2563eb;
     --color-bram-accent-light: #eff6ff;
 
     /* Terminal Colors */
