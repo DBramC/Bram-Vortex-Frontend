@@ -2,11 +2,11 @@
 
 @theme {
     /* Φόντο: Mint/Emerald tint */
-    --color-bram-bg: #04782a;
-    --color-bram-surface: #95ffad; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
+    --color-bram-bg: #63ed8f;
+    --color-bram-surface: #def8e2; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
 
     /* Header Glass Effect */
-    --color-bram-header: rgba(255, 255, 255, 0.74);
+    --color-bram-header: #def8e2;
 
     /* Primary: Το Πράσινο της δράσης */
     --color-bram-primary: #059669;
