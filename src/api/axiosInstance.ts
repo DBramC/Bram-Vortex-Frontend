@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// 1. Δημιουργία instance που δείχνει στο Kong Gateway (Port 80)
 const api = axios.create({
-    baseURL: 'http://localhost/',
+    // ΑΛΛΑΓΗ ΕΔΩ: Χρησιμοποιούμε το /api ως πρόθεμα (ή το http://localhost/api)
+    // Το '/api' είναι πιο δυναμικό, δουλεύει και αν το ανεβάσεις σε κανονικό domain!
+    baseURL: '/api',
     headers: {
         'Content-Type': 'application/json',
     },
