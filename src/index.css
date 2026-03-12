@@ -2,8 +2,8 @@
 
 @theme {
     /* Φόντο: Ένα πολύ ελαφρύ, φρέσκο πράσινο (Mint/Emerald tint) */
-    --color-bram-bg: #f0fdf4;
-    --color-bram-surface: #ffffff;
+    --color-bram-bg: #20aa4b;
+    --color-bram-surface: #75ec9c;
 
     /* Primary: Το Πράσινο της δράσης */
     --color-bram-primary: #059669;
@@ -21,7 +21,7 @@
     /* Κείμενο & Borders */
     --color-bram-text-main: #020617;
     --color-bram-text-muted: #475569;
-    --color-bram-border: #cbd5e1;
+    --color-bram-border: #0074ff;
 }
 
 @layer base {

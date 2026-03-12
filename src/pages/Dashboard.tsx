@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 // ----------------------------------------------------------------------
-// 1. DATA TYPES & ICONS
+// 1. DATA TYPES & ICONS (AWS, GCP, Azure)
 // ----------------------------------------------------------------------
 interface Repo {
     id: number;
@@ -157,31 +157,37 @@ export default function Dashboard() {
     // 3. RENDERING
     // ----------------------------------------------------------------------
     return (
-        <div className="min-h-screen flex flex-col items-center px-4 py-12 bg-bram-bg text-bram-text-main antialiased font-sans">
+        /* h-screen και overflow-hidden για να μην κουνιέται η σελίδα */
+        <div className="h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans overflow-hidden">
 
-            {/* User Pill */}
-            <div className="w-full max-w-lg mb-12 flex justify-center">
-                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border-2 border-bram-border bg-white shadow-sm">
-                    <CircleUser size={20} className="text-bram-accent" />
-                    <span className="font-black text-sm tracking-tight text-bram-text-main">{username}</span>
+            {/* Fixed Header Area */}
+            <div className="w-full flex flex-col items-center pt-8 px-4 flex-shrink-0">
+                {/* User Pill */}
+                <div className="w-full max-w-lg mb-8 flex justify-center">
+                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border-2 border-bram-border bg-white shadow-sm">
+                        <CircleUser size={20} className="text-bram-accent" />
+                        <span className="font-black text-sm tracking-tight text-bram-text-main">{username}</span>
+                    </div>
+                </div>
+
+                {/* Header Branding (Vortex is Green) */}
+                <div className="text-center mb-10">
+                    <h1 className="text-6xl font-black mb-2 tracking-tighter text-bram-text-main">
+                        Bram <span className="text-bram-primary">Vortex</span>
+                    </h1>
+                    <p className="text-bram-text-muted font-bold text-xl tracking-tight uppercase">Infrastructure Portal</p>
                 </div>
             </div>
 
-            {/* Header Branding (Vortex is Green) */}
-            <div className="text-center mb-16">
-                <h1 className="text-6xl font-black mb-3 tracking-tighter text-bram-text-main">
-                    Bram <span className="text-bram-primary">Vortex</span>
-                </h1>
-                <p className="text-bram-text-muted font-bold text-xl tracking-tight">Select a repository to architect</p>
-            </div>
-
-            {/* Repository List - Container must NOT have overflow-hidden */}
-            <div ref={listRef} className="w-full max-w-xl mb-12 flex flex-col gap-6">
-
+            {/* Scrollable Repository List - flex-1 και overflow-y-auto */}
+            <div
+                ref={listRef}
+                className="w-full max-w-xl flex-1 overflow-y-auto px-6 pb-12 flex flex-col gap-6 scrollbar-hide"
+            >
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
-                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs text-center">Fetching repositories...</p>
+                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-xs">Fetching repositories...</p>
                     </div>
                 ) : repos.length === 0 ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
@@ -197,14 +203,14 @@ export default function Dashboard() {
                         const SelectedComputeIcon = selectedComputeObj?.icon || Box;
 
                         return (
-                            <div key={repo.id} className="relative transition-all duration-300">
-                                {/* CARD: No overflow-hidden here! Allows the scale and shadows to pop */}
+                            /* Η επιλεγμένη κάρτα παίρνει δυναμικά z-50 για να μην την καλύπτουν οι από κάτω */
+                            <div key={repo.id} className={`relative transition-all duration-300 ${isSelected ? 'z-50' : 'z-10'}`}>
                                 <div
                                     className={`
-                                        group transition-all duration-500 ease-out rounded-[2rem] border-2
+                                        group transition-all duration-500 ease-out rounded-[2.5rem] border-2
                                         ${isSelected
-                                        ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] z-30'
-                                        : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02] hover:shadow-lg z-10'
+                                        ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)]'
+                                        : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02] hover:shadow-lg'
                                     }
                                     `}
                                 >
@@ -224,7 +230,7 @@ export default function Dashboard() {
                                                 {repo.name}
                                             </div>
                                             <div className="text-bram-text-muted text-xs font-black uppercase tracking-[0.2em] mt-1">
-                                                {repo.language || 'Plain Text'} • {repo.private ? 'Private' : 'Public'}
+                                                {repo.language || 'Code'} • {repo.private ? 'Private' : 'Public'}
                                             </div>
                                         </div>
 
@@ -254,8 +260,6 @@ export default function Dashboard() {
                                                         </div>
                                                         <ChevronDown size={18} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
                                                     </button>
-
-                                                    {/* DROPDOWN MENU - Must be absolute and have high z-index */}
                                                     {isCloudMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {CLOUD_PROVIDERS.map(opt => (
@@ -283,8 +287,6 @@ export default function Dashboard() {
                                                         </div>
                                                         <ChevronDown size={18} className={`transition-transform duration-300 ${isComputeMenuOpen ? 'rotate-180 text-bram-accent' : ''}`} />
                                                     </button>
-
-                                                    {/* DROPDOWN MENU */}
                                                     {isComputeMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-border bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {COMPUTE_OPTIONS.map(opt => (
@@ -323,10 +325,10 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Logout Section */}
-            <div className="w-full max-w-lg">
+            {/* Fixed Logout Section - flex-shrink-0 */}
+            <div className="w-full max-w-lg pb-10 flex-shrink-0 flex justify-center px-6">
                 <button
-                    className="w-full px-8 py-5 rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
+                    className="w-full px-8 py-5 rounded-[2.5rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
                     onClick={handleLogout}
                 >
                     <LogOut size={22} className="rotate-180" />
