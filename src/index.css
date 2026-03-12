@@ -2,11 +2,11 @@
 
 @theme {
     /* Φόντο: Mint/Emerald tint */
-    --color-bram-bg: #c3f4ce;
-    --color-bram-surface: #ffffff; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
+    --color-bram-bg: #e1f4e4;
+    --color-bram-surface: #9af1b3; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
 
     /* Header Glass Effect */
-    --color-bram-header: rgba(255, 255, 255, 0.91);
+    --color-bram-header: rgba(255, 255, 255, 0.74);
 
     /* Primary: Το Πράσινο της δράσης */
     --color-bram-primary: #059669;
@@ -15,7 +15,7 @@
 
     /* Accent: Το Μπλε της τεχνολογίας */
     --color-bram-accent: #0847d8;
-    --color-bram-accent-light: #eff6ff;
+    --color-bram-accent-light: #89bdff;
 
     /* TERMINAL COLORS */
     --color-terminal-bg: #0f172a;
