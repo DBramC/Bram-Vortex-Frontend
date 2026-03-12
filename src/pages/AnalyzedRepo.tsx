@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axiosInstance from '../api/axiosInstance';
 import api from "../api/axiosInstance"; // Το δικό σου axios instance
 
 interface AnalysisJob {
