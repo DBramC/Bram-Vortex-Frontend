@@ -1,23 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-    /* Φόντο: Mint/Emerald tint */
-    --color-bram-bg: #d1ffde;
-    --color-bram-surface: #d2ecce; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
+    /* Φόντο: Ένα πιο στιβαρό, "tech" πράσινο για υψηλό contrast με το λευκό */
+    --color-bram-bg: #064e3b; /* Deep Emerald / Hacking Green */
+    --color-bram-surface: #ffffff;
 
-    /* Header Glass Effect */
-    --color-bram-header: #def8e2;
-
-    /* Primary: Το Πράσινο της δράσης */
-    --color-bram-primary: #059669;
-    --color-bram-primary-hover: #047857;
-    --color-bram-primary-soft: rgba(5, 150, 105, 0.1); /* Για το φόντο των dropdowns */
+    /* Primary: Το ζωντανό πράσινο του Vortex */
+    --color-bram-primary: #10b981;
+    --color-bram-primary-hover: #059669;
+    --color-bram-primary-soft: rgba(16, 185, 129, 0.1);
 
     /* Accent: Το Μπλε της τεχνολογίας */
     --color-bram-accent: #0847d8;
-    --color-bram-accent-light: #c3dfff;
+    --color-bram-accent-light: #eff6ff;
 
-    /* TERMINAL COLORS */
+    /* Terminal Colors */
     --color-terminal-bg: #0f172a;
     --color-terminal-prompt: #10b981;
     --color-terminal-blueprint: #3b82f6;
@@ -25,9 +22,7 @@
     /* Κείμενο & Borders */
     --color-bram-text-main: #020617;
     --color-bram-text-muted: #475569;
-
-    /* Το κεντρικό border της σελίδας */
-    --color-bram-border: #a4c6ef;
+    --color-bram-border: #e2e8f0;
 }
 
 @layer base {

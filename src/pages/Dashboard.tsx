@@ -6,7 +6,7 @@ import {
     ChevronDown, Server, Box, Network
 } from 'lucide-react';
 
-// --- DATA TYPES & ICONS ---
+// --- DATA TYPES & ICONS (AWS, GCP, Azure ίδια) ---
 interface Repo {
     id: number;
     name: string;
@@ -64,8 +64,6 @@ export default function Dashboard() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
-
-    // Refs Map για να βρίσκουμε τις κάρτες
     const repoRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
     const [selectedCloud, setSelectedCloud] = useState<string>('AWS');
@@ -73,34 +71,30 @@ export default function Dashboard() {
     const [selectedCompute, setSelectedCompute] = useState<string>('Container');
     const [isComputeMenuOpen, setIsComputeMenuOpen] = useState(false);
 
-    // --- AUTO-CENTER LOGIC ---
+    useEffect(() => {
+        setIsCloudMenuOpen(false);
+        setIsComputeMenuOpen(false);
+    }, [selectedRepoId]);
+
+    // --- GRHGORO AUTO-CENTER LOGIC ---
     useEffect(() => {
         if (selectedRepoId !== null) {
             const element = repoRefs.current.get(selectedRepoId);
             if (element) {
-                // Χρησιμοποιούμε 300ms για να προλάβει η κάρτα να "ανοίξει" οπτικά
                 setTimeout(() => {
-                    element.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                }, 300);
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100); // 100ms για αστραπιαία κίνηση
             }
         }
     }, [selectedRepoId]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            // Αν το κλικ δεν είναι μέσα σε κάποια κάρτα, κλείσε την επιλογή
             let clickedInside = false;
             repoRefs.current.forEach((ref) => {
                 if (ref.contains(event.target as Node)) clickedInside = true;
             });
-            if (!clickedInside) {
-                setSelectedRepoId(null);
-                setIsCloudMenuOpen(false);
-                setIsComputeMenuOpen(false);
-            }
+            if (!clickedInside) setSelectedRepoId(null);
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -143,28 +137,28 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans pb-32">
 
-            {/* HEADER AREA - Profile Bubble Left, Title Right */}
-            <div className="w-full flex flex-col items-center pt-16 px-4">
-                <div className="w-full max-w-3xl bg-bram-header backdrop-blur-md px-10 py-6 rounded-[3rem] border-2 border-white shadow-xl flex items-center gap-8">
+            {/* HEADER AREA - Πλέον μοιάζει με κάρτα Repo για ομοιομορφία */}
+            <div className="w-full flex flex-col items-center pt-16 px-6">
+                <div className="w-full max-w-xl bg-white border-2 border-bram-border rounded-[2.5rem] px-8 py-7 shadow-xl flex items-center gap-6">
 
-                    {/* Profile Bubble Left */}
-                    <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-bram-border bg-white shadow-sm shrink-0">
-                        <CircleUser size={20} className="text-bram-accent" />
-                        <span className="font-black text-xs tracking-tight">{username}</span>
+                    {/* Profile Bubble - Τώρα Αριστερά */}
+                    <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full border border-bram-border bg-slate-50 shadow-sm shrink-0">
+                        <CircleUser size={22} className="text-bram-accent" />
+                        <span className="font-black text-sm tracking-tight">{username}</span>
                     </div>
 
                     {/* Title Group Right */}
-                    <div className="flex flex-col border-l-2 border-bram-primary/20 pl-8">
-                        <h1 className="text-5xl font-black tracking-tighter leading-tight">
+                    <div className="flex flex-col border-l-2 border-bram-primary/20 pl-7">
+                        <h1 className="text-4xl font-black tracking-tighter leading-tight">
                             Bram <span className="text-bram-primary">Vortex</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-[10px] tracking-[0.2em] uppercase mt-0.5">Infrastructure Portal</p>
+                        <p className="text-bram-text-muted font-black text-[10px] tracking-[0.25em] uppercase mt-0.5">Infrastructure Portal</p>
                     </div>
                 </div>
             </div>
 
             {/* REPOSITORY LIST */}
-            <div className="w-full max-w-xl px-6 flex flex-col gap-6 mt-16">
+            <div className="w-full max-w-xl px-6 flex flex-col gap-6 mt-12">
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
@@ -181,13 +175,12 @@ export default function Dashboard() {
                         return (
                             <div
                                 key={repo.id}
-                                // Αποθήκευση του Ref για κάθε κάρτα
                                 ref={(el) => { if (el) repoRefs.current.set(repo.id, el); else repoRefs.current.delete(repo.id); }}
                                 onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}
-                                className={`relative transition-all duration-100 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
+                                className={`relative transition-all duration-500 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
                             >
                                 <div className={`group transition-all duration-500 ease-out rounded-[2.5rem] border-2
-                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.05] shadow-2xl' : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02]'}`}>
+                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.05] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)]' : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02]'}`}>
 
                                     <div className="w-full px-8 py-6 flex items-center gap-6">
                                         <div className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors
@@ -203,10 +196,10 @@ export default function Dashboard() {
 
                                     {isSelected && (
                                         <div className="px-8 pb-8 pt-2 animate-in fade-in slide-in-from-top-4 duration-500" onClick={(e) => e.stopPropagation()}>
-                                            <div className="h-px bg-bram-primary/20 mb-8 w-full" />
+                                            <div className="h-px bg-bram-primary opacity-20 mb-8 w-full" />
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-                                                {/* Target Cloud Dropdown */}
+                                                {/* Target Cloud */}
                                                 <div className="relative">
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Target Cloud</label>
                                                     <button type="button" onClick={() => { setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
@@ -228,7 +221,7 @@ export default function Dashboard() {
                                                     )}
                                                 </div>
 
-                                                {/* Infrastructure Dropdown */}
+                                                {/* Infrastructure */}
                                                 <div className="relative">
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Infrastructure</label>
                                                     <button type="button" onClick={() => { setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
@@ -268,8 +261,8 @@ export default function Dashboard() {
             </div>
 
             {/* Logout Section */}
-            <div className="w-full max-w-lg mt-20 flex justify-center px-6">
-                <button className="w-full px-8 py-5 rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm" onClick={handleLogout}>
+            <div className="w-full max-w-xl mt-20 flex justify-center px-6">
+                <button className="w-full px-8 py-5 rounded-[2.5rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-white/50 bg-white/5 border-2 border-white/10 hover:bg-red-500 hover:text-white hover:border-red-600 shadow-sm" onClick={handleLogout}>
                     <LogOut size={22} className="rotate-180" /><span>Terminate Session</span></button>
             </div>
         </div>
