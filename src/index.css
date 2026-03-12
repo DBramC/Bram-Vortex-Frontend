@@ -7,8 +7,8 @@
 
     /* Primary: Ζωντανό Emerald Green για αντίθεση μέσα στις κάρτες */
     --color-bram-primary: #027a26;
-    --color-bram-primary-hover: #ff0000;
-    --color-bram-primary-soft: rgba(255, 0, 220, 0.75);
+    --color-bram-primary-hover: #0b5a25;
+    --color-bram-primary-soft: rgba(4, 172, 56, 0.4);
 
     /* Accent: Blue για λεπτομέρειες (π.χ. το profile icon) */
     --color-bram-accent: #0e9e3a;
