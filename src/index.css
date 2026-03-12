@@ -6,7 +6,7 @@
     --color-bram-surface: #ffffff; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
 
     /* Header Glass Effect */
-    --color-bram-header: rgba(255, 255, 255, 0.7);
+    --color-bram-header: rgba(255, 255, 255, 0.91);
 
     /* Primary: Το Πράσινο της δράσης */
     --color-bram-primary: #059669;
@@ -27,7 +27,7 @@
     --color-bram-text-muted: #475569;
 
     /* Το κεντρικό border της σελίδας */
-    --color-bram-border: #cbd5e1;
+    --color-bram-border: #a4c6ef;
 }
 
 @layer base {

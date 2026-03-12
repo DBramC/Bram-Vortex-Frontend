@@ -62,23 +62,44 @@ export default function Dashboard() {
     const [username, setUsername] = useState<string>("User");
     const [isLoadingRepos, setIsLoadingRepos] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
-    const listRef = useRef<HTMLDivElement>(null);
+
+    // Refs Map για να βρίσκουμε τις κάρτες
+    const repoRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
     const [selectedCloud, setSelectedCloud] = useState<string>('AWS');
     const [isCloudMenuOpen, setIsCloudMenuOpen] = useState(false);
     const [selectedCompute, setSelectedCompute] = useState<string>('Container');
     const [isComputeMenuOpen, setIsComputeMenuOpen] = useState(false);
 
+    // --- AUTO-CENTER LOGIC ---
     useEffect(() => {
-        setIsCloudMenuOpen(false);
-        setIsComputeMenuOpen(false);
+        if (selectedRepoId !== null) {
+            const element = repoRefs.current.get(selectedRepoId);
+            if (element) {
+                // Χρησιμοποιούμε 300ms για να προλάβει η κάρτα να "ανοίξει" οπτικά
+                setTimeout(() => {
+                    element.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 300);
+            }
+        }
     }, [selectedRepoId]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (listRef.current && !listRef.current.contains(event.target as Node)) {
+            // Αν το κλικ δεν είναι μέσα σε κάποια κάρτα, κλείσε την επιλογή
+            let clickedInside = false;
+            repoRefs.current.forEach((ref) => {
+                if (ref.contains(event.target as Node)) clickedInside = true;
+            });
+            if (!clickedInside) {
                 setSelectedRepoId(null);
+                setIsCloudMenuOpen(false);
+                setIsComputeMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -106,22 +127,6 @@ export default function Dashboard() {
 
     const handleLogout = () => { localStorage.removeItem('jwt_token'); navigate('/', { replace: true }); };
 
-    // --- AUTO-SCROLL LOGIC ---
-    const handleRepoSelection = (e: React.MouseEvent<HTMLDivElement>, id: number) => {
-        if (selectedRepoId === id) {
-            setSelectedRepoId(null);
-        } else {
-            setSelectedRepoId(id);
-            // Περιμένουμε το React να κάνει render το expanded content και μετά σκρολάρουμε
-            setTimeout(() => {
-                e.currentTarget.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                });
-            }, 150);
-        }
-    };
-
     const handleConfirmAnalysis = async (repo: Repo) => {
         try {
             setIsAnalyzing(true);
@@ -136,9 +141,9 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans pb-20">
+        <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans pb-32">
 
-            {/* HEADER AREA - Profile Bubble Left, Title Right, No Sticky */}
+            {/* HEADER AREA - Profile Bubble Left, Title Right */}
             <div className="w-full flex flex-col items-center pt-16 px-4">
                 <div className="w-full max-w-3xl bg-bram-header backdrop-blur-md px-10 py-6 rounded-[3rem] border-2 border-white shadow-xl flex items-center gap-8">
 
@@ -153,13 +158,13 @@ export default function Dashboard() {
                         <h1 className="text-5xl font-black tracking-tighter leading-tight">
                             Bram <span className="text-bram-primary">Vortex</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-[10px] tracking-[0.2em] uppercase mt-0.5 text-center sm:text-left">Infrastructure Portal</p>
+                        <p className="text-bram-text-muted font-black text-[10px] tracking-[0.2em] uppercase mt-0.5">Infrastructure Portal</p>
                     </div>
                 </div>
             </div>
 
             {/* REPOSITORY LIST */}
-            <div ref={listRef} className="w-full max-w-xl px-6 flex flex-col gap-6 mt-16">
+            <div className="w-full max-w-xl px-6 flex flex-col gap-6 mt-16">
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
@@ -176,7 +181,9 @@ export default function Dashboard() {
                         return (
                             <div
                                 key={repo.id}
-                                onClick={(e) => handleRepoSelection(e, repo.id)}
+                                // Αποθήκευση του Ref για κάθε κάρτα
+                                ref={(el) => { if (el) repoRefs.current.set(repo.id, el); else repoRefs.current.delete(repo.id); }}
+                                onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}
                                 className={`relative transition-all duration-500 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
                             >
                                 <div className={`group transition-all duration-500 ease-out rounded-[2.5rem] border-2
@@ -189,17 +196,17 @@ export default function Dashboard() {
                                         </div>
                                         <div className="flex-1 text-left">
                                             <div className={`font-black truncate text-2xl tracking-tighter ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>{repo.name}</div>
-                                            <div className="text-bram-text-muted text-xs font-black uppercase tracking-[0.2em] mt-1">{repo.language || 'Code'} • {repo.private ? 'Private' : 'Public'}</div>
+                                            <div className="text-bram-text-muted text-xs font-black uppercase tracking-[0.2em] mt-1">{repo.language || 'Code'}</div>
                                         </div>
                                         <ChevronRight size={28} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
                                     </div>
 
                                     {isSelected && (
                                         <div className="px-8 pb-8 pt-2 animate-in fade-in slide-in-from-top-4 duration-500" onClick={(e) => e.stopPropagation()}>
-                                            <div className="h-px bg-bram-primary opacity-20 mb-8 w-full" />
+                                            <div className="h-px bg-bram-primary/20 mb-8 w-full" />
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-                                                {/* Target Cloud - Green Selection */}
+                                                {/* Target Cloud Dropdown */}
                                                 <div className="relative">
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Target Cloud</label>
                                                     <button type="button" onClick={() => { setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
@@ -221,7 +228,7 @@ export default function Dashboard() {
                                                     )}
                                                 </div>
 
-                                                {/* Infrastructure - Green Selection */}
+                                                {/* Infrastructure Dropdown */}
                                                 <div className="relative">
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Infrastructure</label>
                                                     <button type="button" onClick={() => { setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
