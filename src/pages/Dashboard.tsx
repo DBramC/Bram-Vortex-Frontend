@@ -248,7 +248,7 @@ export default function Dashboard() {
                                                 <button className="px-8 py-4.5 rounded-xl border-2 border-bram-primary/30 font-black text-sm uppercase tracking-widest text-bram-primary hover:bg-bram-primary-soft transition-all"
                                                         onClick={() => setSelectedRepoId(null)}>Cancel</button>
                                                 <button onClick={() => handleConfirmAnalysis(repo)} disabled={isAnalyzing}
-                                                        className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-emerald-400 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase">
+                                                        className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase">
                                                     {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : 'Generate Infrastructure'}</button>
                                             </div>
                                         </div>
