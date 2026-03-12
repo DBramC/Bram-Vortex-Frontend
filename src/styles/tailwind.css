@@ -1,39 +1,32 @@
-@import 'tailwindcss' source(none);
-@import 'tw-animate-css';
 @import "tailwindcss";
 
-@source '../**/*.{js,ts,jsx,tsx}';
-
-/* 1. Εδώ ορίζουμε το ΚΕΝΤΡΙΚΟ μας θέμα (Πράσινο / Μπλε / Λευκό) */
 @theme {
-    /* Φόντο όλης της σελίδας (πολύ αχνό μπλε-γκρι για καθαρότητα) */
-    --color-bram-bg: #f8fafc;
+    /* Φόντο: Πολύ αχνό Μπλε-Γκρι (Slate) για "αέρα" */
+    --color-bram-bg: #f1f5f9;
 
-    /* Κάρτες, μενού, κουτιά (Καθαρό λευκό) */
+    /* Κάρτες: Καθαρό Λευκό */
     --color-bram-surface: #ffffff;
 
-    /* === PRIMARY (ΠΡΑΣΙΝΟ) - Για τα βασικά κουμπιά (Call to Actions) === */
+    /* Primary: Το Πράσινο της επιτυχίας (Emerald) */
     --color-bram-primary: #10b981;
     --color-bram-primary-hover: #059669;
 
-    /* === ACCENT (ΜΠΛΕ) - ΝΕΟ! Για εικονίδια, secondary κουμπιά, λεπτομέρειες === */
-    --color-bram-accent: #3b82f6;       /* Ένα καθαρό, επαγγελματικό μπλε */
-    --color-bram-accent-hover: #2563eb; /* Πιο σκούρο μπλε για hover */
-    --color-bram-accent-light: #eff6ff; /* Αχνό μπλε για φόντο πίσω από εικονίδια */
+    /* Accent: Επαγγελματικό Μπλε (Royal Blue) */
+    --color-bram-accent: #2563eb;
+    --color-bram-accent-light: #dbeafe;
 
-    /* Βασικό κείμενο (Βαθύ Navy/Σκούρο μπλε-γκρι - όχι σκέτο μαύρο!) */
-    --color-bram-text-main: #0f172a;
-
-    /* Δευτερεύον κείμενο (Πιο ανοιχτό μπλε-γκρι) */
+    /* Κείμενο: Πολύ σκούρο Navy (για να μη "χτυπάει" το μαύρο) */
+    --color-bram-text-main: #1e293b;
     --color-bram-text-muted: #64748b;
 
-    /* Γραμμές και περιγράμματα (Borders) */
+    /* Borders: Απαλό γκρι */
     --color-bram-border: #e2e8f0;
 }
 
-/* 2. Εφαρμόζουμε το φόντο σε όλο το application by default */
-body {
-    background-color: var(--color-bram-bg);
-    color: var(--color-bram-text-main);
-    font-family: 'Inter', system-ui, sans-serif;
+/* Εφαρμογή στο σώμα της σελίδας */
+@layer base {
+    body {
+        @apply bg-bram-bg text-bram-text-main antialiased;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
 }
