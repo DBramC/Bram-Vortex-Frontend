@@ -184,7 +184,7 @@ export default function Dashboard() {
                                 // Αποθήκευση του Ref για κάθε κάρτα
                                 ref={(el) => { if (el) repoRefs.current.set(repo.id, el); else repoRefs.current.delete(repo.id); }}
                                 onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}
-                                className={`relative transition-all duration-500 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
+                                className={`relative transition-all duration-100 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
                             >
                                 <div className={`group transition-all duration-500 ease-out rounded-[2.5rem] border-2
                                     ${isSelected ? 'bg-white border-bram-primary scale-[1.05] shadow-2xl' : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02]'}`}>
