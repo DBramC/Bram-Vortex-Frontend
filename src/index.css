@@ -3,7 +3,7 @@
 @theme {
     /* Φόντο: Mint/Emerald tint */
     --color-bram-bg: #e1f4e4;
-    --color-bram-surface: #9af1b3; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
+    --color-bram-surface: #95ffad; /* Εδώ το κρατάμε λευκό για καθαρότητα στις κάρτες */
 
     /* Header Glass Effect */
     --color-bram-header: rgba(255, 255, 255, 0.74);
