@@ -6,7 +6,7 @@ import {
     ChevronDown, Server, Box, Network
 } from 'lucide-react';
 
-// --- DATA TYPES & ICONS (AWS, GCP, Azure κλπ παραμένουν ίδια) ---
+// --- DATA TYPES & ICONS ---
 interface Repo {
     id: number;
     name: string;
@@ -64,6 +64,7 @@ export default function Dashboard() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
+
     const [selectedCloud, setSelectedCloud] = useState<string>('AWS');
     const [isCloudMenuOpen, setIsCloudMenuOpen] = useState(false);
     const [selectedCompute, setSelectedCompute] = useState<string>('Container');
@@ -78,8 +79,6 @@ export default function Dashboard() {
         const handleClickOutside = (event: MouseEvent) => {
             if (listRef.current && !listRef.current.contains(event.target as Node)) {
                 setSelectedRepoId(null);
-                setIsCloudMenuOpen(false);
-                setIsComputeMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -107,6 +106,22 @@ export default function Dashboard() {
 
     const handleLogout = () => { localStorage.removeItem('jwt_token'); navigate('/', { replace: true }); };
 
+    // --- AUTO-SCROLL LOGIC ---
+    const handleRepoSelection = (e: React.MouseEvent<HTMLDivElement>, id: number) => {
+        if (selectedRepoId === id) {
+            setSelectedRepoId(null);
+        } else {
+            setSelectedRepoId(id);
+            // Περιμένουμε το React να κάνει render το expanded content και μετά σκρολάρουμε
+            setTimeout(() => {
+                e.currentTarget.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }, 150);
+        }
+    };
+
     const handleConfirmAnalysis = async (repo: Repo) => {
         try {
             setIsAnalyzing(true);
@@ -121,29 +136,30 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans">
+        <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans pb-20">
 
-            {/* HEADER AREA - Προστέθηκε το background contrast header */}
-            <div className="w-full flex flex-col items-center pt-12 px-4 sticky top-0 z-[60]">
-                <div className="w-full max-w-2xl bg-white/70 backdrop-blur-md px-8 py-8 rounded-[3rem] border-2 border-white/50 shadow-xl flex flex-col items-center">
-                    {/* User Pill */}
-                    <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-bram-border bg-white shadow-sm mb-6">
-                        <CircleUser size={18} className="text-bram-accent" />
-                        <span className="font-black text-xs tracking-tight text-bram-text-main">{username}</span>
+            {/* HEADER AREA - Profile Bubble Left, Title Right, No Sticky */}
+            <div className="w-full flex flex-col items-center pt-16 px-4">
+                <div className="w-full max-w-3xl bg-bram-header backdrop-blur-md px-10 py-6 rounded-[3rem] border-2 border-white shadow-xl flex items-center gap-8">
+
+                    {/* Profile Bubble Left */}
+                    <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-bram-border bg-white shadow-sm shrink-0">
+                        <CircleUser size={20} className="text-bram-accent" />
+                        <span className="font-black text-xs tracking-tight">{username}</span>
                     </div>
 
-                    {/* Header Branding */}
-                    <div className="text-center">
-                        <h1 className="text-6xl font-black mb-1 tracking-tighter text-bram-text-main">
+                    {/* Title Group Right */}
+                    <div className="flex flex-col border-l-2 border-bram-primary/20 pl-8">
+                        <h1 className="text-5xl font-black tracking-tighter leading-tight">
                             Bram <span className="text-bram-primary">Vortex</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-sm tracking-[0.2em] uppercase">Infrastructure Portal</p>
+                        <p className="text-bram-text-muted font-black text-[10px] tracking-[0.2em] uppercase mt-0.5 text-center sm:text-left">Infrastructure Portal</p>
                     </div>
                 </div>
             </div>
 
             {/* REPOSITORY LIST */}
-            <div ref={listRef} className="w-full max-w-xl px-6 flex flex-col gap-6 mt-16 mb-12">
+            <div ref={listRef} className="w-full max-w-xl px-6 flex flex-col gap-6 mt-16">
                 {isLoadingRepos ? (
                     <div className="p-20 text-center bg-white rounded-[2.5rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-4 text-bram-accent" size={48} />
@@ -158,13 +174,17 @@ export default function Dashboard() {
                         const SelectedComputeIcon = selectedComputeObj?.icon || Box;
 
                         return (
-                            <div key={repo.id} className={`relative transition-all duration-300 ${isSelected ? 'z-50' : 'z-10'}`}>
+                            <div
+                                key={repo.id}
+                                onClick={(e) => handleRepoSelection(e, repo.id)}
+                                className={`relative transition-all duration-500 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
+                            >
                                 <div className={`group transition-all duration-500 ease-out rounded-[2.5rem] border-2
                                     ${isSelected ? 'bg-white border-bram-primary scale-[1.05] shadow-2xl' : 'bg-white border-bram-border hover:border-bram-accent/50 hover:scale-[1.02]'}`}>
 
-                                    <button className="w-full px-8 py-6 flex items-center gap-6 outline-none" onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}>
+                                    <div className="w-full px-8 py-6 flex items-center gap-6">
                                         <div className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center transition-colors
-                                            ${isSelected ? 'bg-green-50 text-bram-primary' : 'bg-bram-accent-light text-bram-accent'}`}>
+                                            ${isSelected ? 'bg-bram-primary-soft text-bram-primary' : 'bg-bram-accent-light text-bram-accent'}`}>
                                             <Code size={32} strokeWidth={2.5} />
                                         </div>
                                         <div className="flex-1 text-left">
@@ -172,18 +192,18 @@ export default function Dashboard() {
                                             <div className="text-bram-text-muted text-xs font-black uppercase tracking-[0.2em] mt-1">{repo.language || 'Code'} • {repo.private ? 'Private' : 'Public'}</div>
                                         </div>
                                         <ChevronRight size={28} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
-                                    </button>
+                                    </div>
 
                                     {isSelected && (
-                                        <div className="px-8 pb-8 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <div className="h-px bg-bram-primary/20 mb-8 w-full" />
+                                        <div className="px-8 pb-8 pt-2 animate-in fade-in slide-in-from-top-4 duration-500" onClick={(e) => e.stopPropagation()}>
+                                            <div className="h-px bg-bram-primary opacity-20 mb-8 w-full" />
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-                                                {/* Target Cloud Dropdown - ΠΡΑΣΙΝΑ ΠΕΡΙΓΡΑΜΜΑΤΑ */}
+                                                {/* Target Cloud - Green Selection */}
                                                 <div className="relative">
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Target Cloud</label>
-                                                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
-                                                            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-green-50/30
+                                                    <button type="button" onClick={() => { setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
+                                                            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-bram-primary-soft/30
                                                             ${isCloudMenuOpen ? 'border-bram-primary ring-4 ring-bram-primary/10' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-3">
                                                             <SelectedCloudIcon />
@@ -194,18 +214,18 @@ export default function Dashboard() {
                                                     {isCloudMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {CLOUD_PROVIDERS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-green-50 transition-colors font-black text-sm text-bram-text-main"
-                                                                        onClick={(e) => { e.stopPropagation(); setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}><opt.icon /> {opt.label}</button>
+                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-bram-primary-soft transition-colors font-black text-sm text-bram-text-main text-left"
+                                                                        onClick={() => { setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}><opt.icon /> {opt.label}</button>
                                                             ))}
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                {/* Infrastructure Dropdown - ΠΡΑΣΙΝΑ ΠΕΡΙΓΡΑΜΜΑΤΑ */}
+                                                {/* Infrastructure - Green Selection */}
                                                 <div className="relative">
                                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 text-bram-primary">Infrastructure</label>
-                                                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
-                                                            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-green-50/30
+                                                    <button type="button" onClick={() => { setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
+                                                            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all outline-none bg-bram-primary-soft/30
                                                             ${isComputeMenuOpen ? 'border-bram-primary ring-4 ring-bram-primary/10' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-3">
                                                             <SelectedComputeIcon size={20} className="text-bram-primary" />
@@ -216,20 +236,19 @@ export default function Dashboard() {
                                                     {isComputeMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {COMPUTE_OPTIONS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-green-50 transition-colors font-black text-sm text-bram-text-main"
-                                                                        onClick={(e) => { e.stopPropagation(); setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}><opt.icon size={20} className="text-bram-primary" /> {opt.label}</button>
+                                                                <button key={opt.id} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-bram-primary-soft transition-colors font-black text-sm text-bram-text-main text-left"
+                                                                        onClick={() => { setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}><opt.icon size={20} className="text-bram-primary" /> {opt.label}</button>
                                                             ))}
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            {/* Action Buttons */}
                                             <div className="flex gap-4">
-                                                <button className="px-8 py-4.5 rounded-xl border-2 border-bram-primary/40 font-black text-sm uppercase tracking-widest text-bram-primary hover:bg-green-50 transition-all"
-                                                        onClick={(e) => { e.stopPropagation(); setSelectedRepoId(null); }}>Cancel</button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleConfirmAnalysis(repo); }} disabled={isAnalyzing}
-                                                        className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-green-200 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-tighter">
+                                                <button className="px-8 py-4.5 rounded-xl border-2 border-bram-primary/40 font-black text-sm uppercase tracking-widest text-bram-primary hover:bg-bram-primary-soft transition-all"
+                                                        onClick={() => setSelectedRepoId(null)}>Cancel</button>
+                                                <button onClick={() => handleConfirmAnalysis(repo)} disabled={isAnalyzing}
+                                                        className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg shadow-xl shadow-green-200 hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase">
                                                     {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : 'Generate Infrastructure'}</button>
                                             </div>
                                         </div>
@@ -242,7 +261,7 @@ export default function Dashboard() {
             </div>
 
             {/* Logout Section */}
-            <div className="w-full max-w-lg pb-20 flex justify-center px-6">
+            <div className="w-full max-w-lg mt-20 flex justify-center px-6">
                 <button className="w-full px-8 py-5 rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.2em] transition-all text-bram-text-muted bg-white border-2 border-bram-border hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm" onClick={handleLogout}>
                     <LogOut size={22} className="rotate-180" /><span>Terminate Session</span></button>
             </div>
