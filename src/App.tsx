@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import AnalyzedRepo from './pages/AnalyzedRepo';
+import AnalysisParameters from './pages/AnalysisParameters';
 
 const RequireAuth = () => {
     const token = localStorage.getItem('jwt_token');
@@ -27,6 +28,7 @@ function App() {
                 <Route element={<RequireAuth />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/analyzed-repo/:jobId" element={<AnalyzedRepo />} />
+                    <Route path="/parameters" element={<AnalysisParameters />} />
                 </Route>
 
                 {/* Catch All */}
