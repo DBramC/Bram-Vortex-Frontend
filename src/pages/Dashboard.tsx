@@ -61,7 +61,6 @@ export default function Dashboard() {
     const [repos, setRepos] = useState<Repo[]>([]);
     const [username, setUsername] = useState<string>("User");
     const [isLoadingRepos, setIsLoadingRepos] = useState(true);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
     const repoRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -121,17 +120,15 @@ export default function Dashboard() {
 
     const handleLogout = () => { localStorage.removeItem('jwt_token'); navigate('/', { replace: true }); };
 
-    const handleConfirmAnalysis = async (repo: Repo) => {
-        try {
-            setIsAnalyzing(true);
-            const response = await api.post('/dashboard/analyze', {
-                repoId: repo.id, repoName: repo.name, repoUrl: repo.html_url,
-                cloudProvider: selectedCloud, computePreference: selectedCompute
-            });
-            setSelectedRepoId(null);
-            navigate(`/analyzed-repo/${response.data}`);
-        } catch (error) { console.error("Analysis failed:", error); alert("❌ Σφάλμα κατά την έναρξη της ανάλυσης.");
-        } finally { setIsAnalyzing(false); }
+    const handleProceedToParameters = (repo: Repo) => {
+        navigate('/parameters', {
+            state: {
+                repoId: repo.id,
+                repoName: repo.name,
+                targetCloud: selectedCloud,
+                computeType: selectedCompute
+            }
+        });
     };
 
     return (
@@ -247,9 +244,10 @@ export default function Dashboard() {
                                             <div className="flex gap-4">
                                                 <button className="px-8 py-4.5 rounded-xl border-2 border-bram-primary/30 font-black text-sm uppercase tracking-widest text-bram-primary hover:bg-bram-primary-soft transition-all"
                                                         onClick={() => setSelectedRepoId(null)}>Cancel</button>
-                                                <button onClick={() => handleConfirmAnalysis(repo)} disabled={isAnalyzing}
+                                                <button onClick={() => handleProceedToParameters(repo)}
                                                         className="flex-1 py-4.5 rounded-2xl bg-bram-primary text-white font-black text-lg hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase">
-                                                    {isAnalyzing ? <Loader2 className="animate-spin" size={24} /> : 'Generate Infrastructure'}</button>
+                                                    Next: Parameters <ChevronRight size={20} />
+                                                </button>
                                             </div>
                                         </div>
                                     )}
