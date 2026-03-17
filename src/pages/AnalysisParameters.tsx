@@ -19,10 +19,10 @@ const CLOUD_REGIONS: Record<string, { id: string; label: string }[]> = {
         { id: 'asia-east1', label: 'Taiwan (asia-east1)' },
     ],
     Azure: [
-        { id: 'germanywestcentral', label: 'Germany West Central' },
-        { id: 'westeurope', label: 'West Europe' },
-        { id: 'eastus', label: 'East US' },
-        { id: 'northeurope', label: 'North Europe' },
+        { id: 'germany-west-central', label: 'Germany West Central' },
+        { id: 'west-europe', label: 'West Europe' },
+        { id: 'east-us', label: 'East US' },
+        { id: 'north-europe', label: 'North Europe' },
     ],
     'On-Premise': [
         { id: 'local-dc', label: 'Default Local Datacenter' },
