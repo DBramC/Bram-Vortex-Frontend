@@ -8,7 +8,7 @@ export default function AnalysisParameters() {
     const navigate = useNavigate();
 
     // 1. Διαβάζουμε τα δεδομένα που μας "πάσαρε" το Dashboard
-    const { repoId, repoName, targetCloud, computeType } = location.state || {};
+    const { repoId, repoName, repoUrl, targetCloud, computeType } = location.state || {};
 
     // 2. Το μόνο State που χρειαζόμαστε πλέον είναι το Region
     const [targetRegion, setTargetRegion] = useState('eu-central-1');
@@ -31,6 +31,7 @@ export default function AnalysisParameters() {
             const payload = {
                 repoId: repoId,
                 repoName: repoName,
+                repoUrl: repoUrl,
                 targetCloud: targetCloud,     // Ήρθε από το Dashboard
                 computeType: computeType,     // Ήρθε από το Dashboard
                 targetRegion: targetRegion    // Μπήκε σε αυτή την οθόνη
