@@ -11,7 +11,7 @@ interface Repo {
     id: number;
     name: string;
     full_name: string;
-    url: string;
+    html_url: string;
     description: string;
     language: string;
     private: boolean;
@@ -125,7 +125,7 @@ export default function Dashboard() {
             state: {
                 repoId: repo.id,
                 repoName: repo.name,
-                repoUrl: repo.url,
+                repoUrl: repo.html_url,
                 targetCloud: selectedCloud,
                 computeType: selectedCompute
             }
