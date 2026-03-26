@@ -10,7 +10,7 @@ interface AnalysisJob {
     computeType: string;
     status: 'ANALYZING' | 'COMPLETED' | 'FAILED';
     promptMessage: string | null;
-    blueprintJson: any | null; // <-- Αλλαγή σε any για να δεχτεί είτε string είτε Object
+    blueprintJson: any | null;
 }
 
 const AnalyzedRepo: React.FC = () => {
@@ -36,13 +36,22 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
-    // Download Function
+    // Η ΛΥΣΗ ΓΙΑ ΤΗ ΒΑΣΗ ΔΕΔΟΜΕΝΩΝ
     const handleDownload = async (service: 'terraform' | 'ansible') => {
         setIsDownloading(service);
         try {
             const response = await api.get(`/${service}/download/by-analysis/${jobId}`, {
                 responseType: 'blob',
             });
+
+            // Αν το Backend επιστρέψει 202, σημαίνει ότι το ZIP είναι ακόμα null στη βάση!
+            if (response.status === 202) {
+                alert(`⚙️ Το ${service.toUpperCase()} δημιουργείται και αποθηκεύεται στη βάση αυτή τη στιγμή. Παρακαλώ περιμένετε 2-3 δευτερόλεπτα και ξαναπατήστε.`);
+                setIsDownloading(null);
+                return; // Σταματάμε το κατέβασμα
+            }
+
+            // Αν επιστρέψει 200 OK, το αρχείο έχει σωθεί στη βάση, άρα το κατεβάζουμε
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -52,32 +61,24 @@ const AnalyzedRepo: React.FC = () => {
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            alert("Το αρχείο δεν είναι έτοιμο ακόμα ή προέκυψε σφάλμα.");
+            alert("Το αρχείο δεν βρέθηκε ή προέκυψε σφάλμα.");
         } finally {
             setIsDownloading(null);
         }
     };
 
-    // Η ΟΡΙΣΤΙΚΗ ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ JSON PARSING
+    // Ασφαλές JSON Parse
     const safeJsonParse = (data: any) => {
         if (!data) return "// Awaiting JSON stream...";
-
-        // 1. Αν είναι ήδη Object, απλά κάντο όμορφο string
-        if (typeof data === 'object') {
-            return JSON.stringify(data, null, 4);
-        }
-
-        // 2. Αν είναι String, δοκίμασε να το κάνεις parse πρώτα
+        if (typeof data === 'object') return JSON.stringify(data, null, 4);
         if (typeof data === 'string') {
             try {
                 const parsed = JSON.parse(data);
                 return JSON.stringify(parsed, null, 4);
             } catch (e) {
-                // Αν δεν είναι έγκυρο JSON (π.χ. απλό κείμενο), επίστρεψε το raw κείμενο
                 return data;
             }
         }
-
         return String(data);
     };
 
