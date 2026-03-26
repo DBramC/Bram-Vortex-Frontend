@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { Loader2, ArrowLeft, Database, Terminal, HardDrive, Cpu, CheckCircle2 } from 'lucide-react';
@@ -18,10 +18,23 @@ const AnalyzedRepo: React.FC = () => {
     const navigate = useNavigate();
     const [job, setJob] = useState<AnalysisJob | null>(null);
 
-    // Καταστάσεις των Generators (Default: GENERATING)
+    // Καταστάσεις των Generators
     const [tfStatus, setTfStatus] = useState<string>('GENERATING');
     const [ansStatus, setAnsStatus] = useState<string>('GENERATING');
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
+
+    // Χρήση Refs για να κρατάμε τα τρέχοντα statuses χωρίς να τα βάζουμε στα dependencies
+    // Αυτό αποτρέπει το Infinite Loop!
+    const tfStatusRef = useRef(tfStatus);
+    const ansStatusRef = useRef(ansStatus);
+
+    useEffect(() => {
+        tfStatusRef.current = tfStatus;
+    }, [tfStatus]);
+
+    useEffect(() => {
+        ansStatusRef.current = ansStatus;
+    }, [ansStatus]);
 
     // 1. Polling για την κεντρική Ανάλυση
     useEffect(() => {
@@ -33,37 +46,66 @@ const AnalyzedRepo: React.FC = () => {
                 console.error("Error fetching job status", error);
             }
         };
-        fetchJobStatus();
-        const interval = setInterval(() => {
-            if (job?.status !== 'COMPLETED' && job?.status !== 'FAILED') fetchJobStatus();
-        }, 3000);
-        return () => clearInterval(interval);
-    }, [jobId, job?.status]);
 
-    // 2. Polling για το Status των Terraform & Ansible
+        fetchJobStatus();
+
+        const interval = setInterval(() => {
+            // Αν δεν είναι COMPLETED/FAILED, ρώτα ξανά
+            setJob(currentJob => {
+                if (currentJob?.status !== 'COMPLETED' && currentJob?.status !== 'FAILED') {
+                    fetchJobStatus();
+                }
+                return currentJob;
+            });
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [jobId]);
+
+    // 2. Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ INFINITE LOOP: Polling για το Status των Terraform & Ansible
     useEffect(() => {
+        // Ξεκινάει μόνο όταν η κεντρική ανάλυση έχει τελειώσει
         if (job?.status !== 'COMPLETED') return;
 
+        let isMounted = true;
+
         const checkGeneratorStatuses = async () => {
+            if (!isMounted) return;
+
             try {
-                if (tfStatus !== 'COMPLETED') {
+                // Έλεγχος Terraform
+                if (tfStatusRef.current !== 'COMPLETED' && tfStatusRef.current !== 'FAILED') {
                     const tfRes = await api.get(`/terraform/status/by-analysis/${jobId}`);
-                    setTfStatus(tfRes.data);
+                    if (isMounted) setTfStatus(tfRes.data);
                 }
 
-                if ((job.computeType === 'VM' || job.computeType === 'Virtual Machine') && ansStatus !== 'COMPLETED') {
+                // Έλεγχος Ansible
+                if (
+                    (job.computeType === 'VM' || job.computeType === 'Virtual Machine') &&
+                    ansStatusRef.current !== 'COMPLETED' &&
+                    ansStatusRef.current !== 'FAILED'
+                ) {
                     const ansRes = await api.get(`/ansible/status/by-analysis/${jobId}`);
-                    setAnsStatus(ansRes.data);
+                    if (isMounted) setAnsStatus(ansRes.data);
                 }
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 console.log("Waiting for generators to sync...");
             }
         };
 
+        // Εκτελούμε αμέσως την πρώτη φορά
+        checkGeneratorStatuses();
+
+        // Μετά ρυθμίζουμε το Interval να ρωτάει
         const interval = setInterval(checkGeneratorStatuses, 3000);
-        return () => clearInterval(interval);
-    }, [job?.status, jobId, tfStatus, ansStatus, job?.computeType]);
+
+        // Cleanup function (Καθαρίζει όταν φεύγουμε από τη σελίδα ή αλλάζει το job)
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
+        // ΠΡΟΣΟΧΗ: ΔΕΝ βάζουμε τα tfStatus / ansStatus εδώ!
+    }, [job?.status, jobId, job?.computeType]);
 
     // 3. Η Διορθωμένη handleDownload (Με έλεγχο 202)
     const handleDownload = async (service: 'terraform' | 'ansible') => {
@@ -73,7 +115,7 @@ const AnalyzedRepo: React.FC = () => {
                 responseType: 'blob',
             });
 
-            // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ ΠΟΥ ΕΛΕΙΠΕ: Αν το backend επιστρέψει 202, σταματάμε.
+            // Αν το backend επιστρέψει 202, σταματάμε.
             if (response.status === 202) {
                 alert(`⚙️ Τα αρχεία του ${service.toUpperCase()} γράφονται στη βάση αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.`);
                 setIsDownloading(null);
@@ -98,7 +140,6 @@ const AnalyzedRepo: React.FC = () => {
             link.remove();
             window.URL.revokeObjectURL(url);
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             alert("Σφάλμα κατά τη λήψη. Δοκιμάστε ξανά.");
         } finally {
@@ -190,12 +231,15 @@ const AnalyzedRepo: React.FC = () => {
                             <div>
                                 <p className="text-bram-text-main font-black text-sm uppercase tracking-tight">Terraform Package</p>
                                 <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-1">
-                                    {tfStatus === 'COMPLETED' ? 'Artifact Ready' : 'Generating Infrastructure...'}
+                                    {tfStatus === 'COMPLETED' ? 'Artifact Ready' :
+                                        tfStatus === 'FAILED' ? 'Generation Failed' : 'Generating Infrastructure...'}
                                 </p>
                             </div>
                         </div>
                         {tfStatus === 'COMPLETED' ? (
                             <CheckCircle2 size={20} className="text-emerald-500" />
+                        ) : tfStatus === 'FAILED' ? (
+                            <span className="text-red-500 font-bold">❌</span>
                         ) : (
                             <Loader2 className="animate-spin text-blue-600" size={20} />
                         )}
@@ -216,12 +260,15 @@ const AnalyzedRepo: React.FC = () => {
                                 <div>
                                     <p className="text-bram-text-main font-black text-sm uppercase tracking-tight">Ansible Playbooks</p>
                                     <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-1">
-                                        {ansStatus === 'COMPLETED' ? 'Artifact Ready' : 'Configuring OS Roles...'}
+                                        {ansStatus === 'COMPLETED' ? 'Artifact Ready' :
+                                            ansStatus === 'FAILED' ? 'Generation Failed' : 'Configuring OS Roles...'}
                                     </p>
                                 </div>
                             </div>
                             {ansStatus === 'COMPLETED' ? (
                                 <CheckCircle2 size={20} className="text-emerald-500" />
+                            ) : ansStatus === 'FAILED' ? (
+                                <span className="text-red-500 font-bold">❌</span>
                             ) : (
                                 <Loader2 className="animate-spin text-purple-600" size={20} />
                             )}
