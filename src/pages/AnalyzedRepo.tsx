@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import { Loader2, ArrowLeft, Database, Terminal } from 'lucide-react';
+import { Loader2, ArrowLeft, Database, Terminal, Download, HardDrive, Cpu } from 'lucide-react';
 
 interface AnalysisJob {
     jobId: string;
     repoName: string;
     targetCloud: string;
+    computeType: string; // Προστέθηκε για το logic των κουμπιών
     status: 'ANALYZING' | 'COMPLETED' | 'FAILED';
     promptMessage: string | null;
     blueprintJson: string | null;
@@ -16,6 +17,7 @@ const AnalyzedRepo: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
     const navigate = useNavigate();
     const [job, setJob] = useState<AnalysisJob | null>(null);
+    const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
     // Live Polling για το status της ανάλυσης
     useEffect(() => {
@@ -34,6 +36,32 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
+    // Συνάρτηση για το κατέβασμα των αρχείων
+    const handleDownload = async (service: 'terraform' | 'ansible') => {
+        setIsDownloading(service);
+        try {
+            // Καλούμε το mapping endpoint (by-analysis)
+            const response = await api.get(`/${service}/download/by-analysis/${jobId}`, {
+                responseType: 'blob', // Απαραίτητο για binary data (ZIP)
+            });
+
+            // Δημιουργία εικονικού link για τη λήψη
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `vortex-${service}-${jobId?.slice(0, 8)}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error(`Error downloading ${service}`, error);
+            alert(`The ${service} package is not ready yet. Check back in a few seconds.`);
+        } finally {
+            setIsDownloading(null);
+        }
+    };
+
     if (!job) return (
         <div className="h-screen bg-bram-bg flex items-center justify-center">
             <Loader2 className="animate-spin text-bram-primary" size={64} />
@@ -41,12 +69,11 @@ const AnalyzedRepo: React.FC = () => {
     );
 
     return (
-        /* h-screen και overflow-hidden: Η σελίδα είναι fixed, δεν κουνιέται τίποτα */
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased">
 
-            {/* 1. Header: Λευκό Card για υψηλή αντίθεση πάνω στο Hacking Green */}
+            {/* 1. Header */}
             <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-6 text-left">
                     <button
                         onClick={() => navigate('/dashboard')}
                         className="p-3 bg-slate-100 rounded-full hover:bg-bram-primary-soft hover:text-bram-primary transition-all border-2 border-transparent hover:border-bram-primary"
@@ -64,32 +91,24 @@ const AnalyzedRepo: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Status Badge */}
                 <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest shadow-sm
                     ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-bram-primary border-bram-primary' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
                     {job.status}
                 </div>
             </div>
 
-            {/* 2. Terminal Grid: flex-1 για να γεμίζει όλο τον χώρο κάτω από το header */}
-            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-4 min-h-0">
+            {/* 2. Terminal Grid */}
+            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
 
-                {/* LEFT TERMINAL: System Prompt (Πράσινο Κείμενο) */}
+                {/* LEFT TERMINAL: System Prompt */}
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden h-full">
-                    {/* Header Μπάρα Terminal */}
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
                         <div className="flex items-center gap-3">
                             <Terminal size={16} className="text-terminal-prompt" />
                             <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">System_Prompt.log</span>
                         </div>
-                        <div className="flex gap-1.5 opacity-50">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                        </div>
                     </div>
-                    {/* Περιεχόμενο με εσωτερικό scroll */}
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm leading-relaxed text-terminal-prompt selection:bg-terminal-prompt/20">
+                    <div className="p-7 overflow-auto flex-1 font-mono text-sm leading-relaxed text-terminal-prompt selection:bg-terminal-prompt/20 text-left">
                         <pre className="whitespace-pre-wrap lowercase">
                             <span className="opacity-40 mr-2 text-white">$</span>
                             {job.promptMessage || "Initializing secure AI handshake..."}
@@ -97,22 +116,18 @@ const AnalyzedRepo: React.FC = () => {
                     </div>
                 </div>
 
-                {/* RIGHT TERMINAL: Blueprint (Μπλε Κείμενο) */}
+                {/* RIGHT TERMINAL: Blueprint */}
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden h-full relative">
-                    {/* Header Μπάρα Terminal */}
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3 flex-shrink-0">
                         <Database size={16} className="text-terminal-blueprint" />
                         <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">Infrastructure_Blueprint.json</span>
                     </div>
 
-                    {/* Περιεχόμενο με εσωτερικό scroll */}
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm leading-relaxed text-terminal-blueprint selection:bg-terminal-blueprint/20">
+                    <div className="p-7 overflow-auto flex-1 font-mono text-sm leading-relaxed text-terminal-blueprint selection:bg-terminal-blueprint/20 text-left">
                         {job.status === 'ANALYZING' ? (
-                            /* Loading Overlay - Matrix Style */
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10 bg-terminal-bg/90 backdrop-blur-sm z-10">
                                 <Loader2 className="animate-spin text-terminal-blueprint mb-6" size={56} />
                                 <h3 className="text-terminal-blueprint font-black text-xl mb-2 tracking-tighter uppercase">Compiling Blueprint...</h3>
-                                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em]">Architecting Cloud Infrastructure</p>
                             </div>
                         ) : (
                             <pre className="whitespace-pre-wrap">
@@ -121,8 +136,59 @@ const AnalyzedRepo: React.FC = () => {
                         )}
                     </div>
                 </div>
-
             </div>
+
+            {/* 3. Action Section: Downloads (Εμφανίζεται μόνο όταν status === COMPLETED) */}
+            {job.status === 'COMPLETED' && (
+                <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-4 mb-4 flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+                    {/* Terraform Button */}
+                    <button
+                        onClick={() => handleDownload('terraform')}
+                        disabled={isDownloading !== null}
+                        className="flex-1 bg-white hover:bg-slate-50 border-2 border-bram-border p-5 rounded-3xl shadow-xl flex items-center justify-between group transition-all active:scale-95"
+                    >
+                        <div className="flex items-center gap-4 text-left">
+                            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform">
+                                <HardDrive size={24} />
+                            </div>
+                            <div>
+                                <p className="text-bram-text-main font-black text-sm tracking-tight">Terraform Package</p>
+                                <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">Infra_as_Code.zip</p>
+                            </div>
+                        </div>
+                        {isDownloading === 'terraform' ? (
+                            <Loader2 className="animate-spin text-blue-600" />
+                        ) : (
+                            <Download className="text-slate-300 group-hover:text-blue-600 transition-colors" size={20} />
+                        )}
+                    </button>
+
+                    {/* Ansible Button (Μόνο αν είναι VM) */}
+                    {(job.computeType === 'VM' || job.computeType === 'Virtual Machine') && (
+                        <button
+                            onClick={() => handleDownload('ansible')}
+                            disabled={isDownloading !== null}
+                            className="flex-1 bg-white hover:bg-slate-50 border-2 border-bram-border p-5 rounded-3xl shadow-xl flex items-center justify-between group transition-all active:scale-95"
+                        >
+                            <div className="flex items-center gap-4 text-left">
+                                <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl group-hover:scale-110 transition-transform">
+                                    <Cpu size={24} />
+                                </div>
+                                <div>
+                                    <p className="text-bram-text-main font-black text-sm tracking-tight">Ansible Playbooks</p>
+                                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">App_Provisioning.zip</p>
+                                </div>
+                            </div>
+                            {isDownloading === 'ansible' ? (
+                                <Loader2 className="animate-spin text-purple-600" />
+                            ) : (
+                                <Download className="text-slate-300 group-hover:text-purple-600 transition-colors" size={20} />
+                            )}
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
