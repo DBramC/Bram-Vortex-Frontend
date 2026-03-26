@@ -10,7 +10,7 @@ interface AnalysisJob {
     computeType: string;
     status: 'ANALYZING' | 'COMPLETED' | 'FAILED';
     promptMessage: string | null;
-    blueprintJson: never | null;
+    blueprintJson: any | null;
 }
 
 const AnalyzedRepo: React.FC = () => {
