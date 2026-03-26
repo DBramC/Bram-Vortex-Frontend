@@ -89,7 +89,7 @@ const AnalyzedRepo: React.FC = () => {
         }
     };
 
-    const safeJsonParse = (data: never) => {
+    const safeJsonParse = (data: unknown) => {
         if (!data) return "// Awaiting JSON stream...";
         if (typeof data === 'object') return JSON.stringify(data, null, 4);
 
