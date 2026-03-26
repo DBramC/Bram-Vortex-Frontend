@@ -36,23 +36,33 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
-    // Η ΛΥΣΗ ΓΙΑ ΤΗ ΒΑΣΗ ΔΕΔΟΜΕΝΩΝ
+    // Η ΟΡΙΣΤΙΚΗ ΛΥΣΗ ΓΙΑ ΑΔΕΙΑ ΑΡΧΕΙΑ
     const handleDownload = async (service: 'terraform' | 'ansible') => {
         setIsDownloading(service);
         try {
             const response = await api.get(`/${service}/download/by-analysis/${jobId}`, {
-                responseType: 'blob',
+                responseType: 'blob', // Λήψη ως binary (Blob)
             });
 
-            // Αν το Backend επιστρέψει 202, σημαίνει ότι το ZIP είναι ακόμα null στη βάση!
-            if (response.status === 202) {
-                alert(`⚙️ Το ${service.toUpperCase()} δημιουργείται και αποθηκεύεται στη βάση αυτή τη στιγμή. Παρακαλώ περιμένετε 2-3 δευτερόλεπτα και ξαναπατήστε.`);
+            // 1. Έλεγχος για 202 Accepted ή 204 No Content
+            if (response.status === 202 || response.status === 204) {
+                alert(`⚙️ Το ${service.toUpperCase()} δημιουργείται αυτή τη στιγμή. Παρακαλώ περιμένετε 2-3 δευτερόλεπτα.`);
                 setIsDownloading(null);
-                return; // Σταματάμε το κατέβασμα
+                return;
             }
 
-            // Αν επιστρέψει 200 OK, το αρχείο έχει σωθεί στη βάση, άρα το κατεβάζουμε
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            // 2. Έλεγχος Μεγέθους Αρχείου (Ο ΑΠΟΛΥΤΟΣ ΕΛΕΓΧΟΣ)
+            const blob = new Blob([response.data], { type: 'application/zip' });
+
+            // Αν το αρχείο είναι μικρότερο από 50 bytes (άδειο ZIP ή κενό stream), ακύρωσε το.
+            if (blob.size < 50) {
+                alert(`⚙️ Τα αρχεία του ${service.toUpperCase()} γράφονται ακόμα στη βάση δεδομένων! Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.`);
+                setIsDownloading(null);
+                return;
+            }
+
+            // 3. Αν περάσει τους ελέγχους, κατέβασέ το κανονικά
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `vortex-${service}-${jobId?.slice(0, 8)}.zip`);
