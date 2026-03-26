@@ -7,10 +7,10 @@ interface AnalysisJob {
     jobId: string;
     repoName: string;
     targetCloud: string;
-    computeType: string; // Απαραίτητο για τα κουμπιά
+    computeType: string;
     status: 'ANALYZING' | 'COMPLETED' | 'FAILED';
     promptMessage: string | null;
-    blueprintJson: string | null;
+    blueprintJson: any | null; // <-- Αλλαγή σε any για να δεχτεί είτε string είτε Object
 }
 
 const AnalyzedRepo: React.FC = () => {
@@ -19,7 +19,7 @@ const AnalyzedRepo: React.FC = () => {
     const [job, setJob] = useState<AnalysisJob | null>(null);
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
-    // Live Polling για το status της ανάλυσης
+    // Live Polling
     useEffect(() => {
         const fetchJobStatus = async () => {
             try {
@@ -36,7 +36,7 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
-    // ΣΥΝΑΡΤΗΣΗ DOWNLOAD (Με JWT μέσω axiosInstance)
+    // Download Function
     const handleDownload = async (service: 'terraform' | 'ansible') => {
         setIsDownloading(service);
         try {
@@ -58,15 +58,27 @@ const AnalyzedRepo: React.FC = () => {
         }
     };
 
-    // HELPER: Ασφαλές JSON Parsing για να μην κρασάρει η σελίδα
-    const safeJsonParse = (jsonString: string | null) => {
-        if (!jsonString) return "// Awaiting JSON stream...";
-        try {
-            return JSON.stringify(JSON.parse(jsonString), null, 4);
-        } catch (e) {
-            // Αν το JSON είναι άκυρο, δείξε το raw κείμενο αντί να κρασάρεις
-            return jsonString;
+    // Η ΟΡΙΣΤΙΚΗ ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ JSON PARSING
+    const safeJsonParse = (data: any) => {
+        if (!data) return "// Awaiting JSON stream...";
+
+        // 1. Αν είναι ήδη Object, απλά κάντο όμορφο string
+        if (typeof data === 'object') {
+            return JSON.stringify(data, null, 4);
         }
+
+        // 2. Αν είναι String, δοκίμασε να το κάνεις parse πρώτα
+        if (typeof data === 'string') {
+            try {
+                const parsed = JSON.parse(data);
+                return JSON.stringify(parsed, null, 4);
+            } catch (e) {
+                // Αν δεν είναι έγκυρο JSON (π.χ. απλό κείμενο), επίστρεψε το raw κείμενο
+                return data;
+            }
+        }
+
+        return String(data);
     };
 
     if (!job) return (
@@ -78,7 +90,7 @@ const AnalyzedRepo: React.FC = () => {
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased">
 
-            {/* 1. Header: Λευκό Card (Original Style) */}
+            {/* 1. Header */}
             <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0 text-left">
                 <div className="flex items-center gap-6">
                     <button
@@ -103,8 +115,9 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* 2. Terminal Grid */}
+            {/* 2. Terminals */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0 text-left">
+
                 {/* System Prompt */}
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden h-full">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center justify-between">
@@ -143,11 +156,10 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* 3. Download Section (Original Section Style) */}
+            {/* 3. Downloads */}
             {job.status === 'COMPLETED' && (
                 <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-4 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-                    {/* Terraform Button */}
                     <button
                         onClick={() => handleDownload('terraform')}
                         disabled={isDownloading !== null}
@@ -165,7 +177,6 @@ const AnalyzedRepo: React.FC = () => {
                         {isDownloading === 'terraform' ? <Loader2 className="animate-spin text-blue-600" /> : <Download size={20} className="text-slate-300 group-hover:text-blue-600 transition-colors" />}
                     </button>
 
-                    {/* Ansible Button (Εμφανίζεται μόνο αν computeType === VM) */}
                     {(job.computeType === 'VM' || job.computeType === 'Virtual Machine') && (
                         <button
                             onClick={() => handleDownload('ansible')}
