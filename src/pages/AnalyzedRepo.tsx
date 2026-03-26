@@ -40,19 +40,17 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
-    // 2. ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ: Polling για το Status των Terraform & Ansible
+    // 2. Polling για το Status των Terraform & Ansible
     useEffect(() => {
         if (job?.status !== 'COMPLETED') return;
 
         const checkGeneratorStatuses = async () => {
             try {
-                // Έλεγχος Terraform Status
                 if (tfStatus !== 'COMPLETED') {
                     const tfRes = await api.get(`/terraform/status/by-analysis/${jobId}`);
                     setTfStatus(tfRes.data);
                 }
 
-                // Έλεγχος Ansible Status (μόνο αν είναι VM)
                 if ((job.computeType === 'VM' || job.computeType === 'Virtual Machine') && ansStatus !== 'COMPLETED') {
                     const ansRes = await api.get(`/ansible/status/by-analysis/${jobId}`);
                     setAnsStatus(ansRes.data);
@@ -67,13 +65,31 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [job?.status, jobId, tfStatus, ansStatus, job?.computeType]);
 
+    // 3. Η Διορθωμένη handleDownload (Με έλεγχο 202)
     const handleDownload = async (service: 'terraform' | 'ansible') => {
         setIsDownloading(service);
         try {
             const response = await api.get(`/${service}/download/by-analysis/${jobId}`, {
                 responseType: 'blob',
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+
+            // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ ΠΟΥ ΕΛΕΙΠΕ: Αν το backend επιστρέψει 202, σταματάμε.
+            if (response.status === 202) {
+                alert(`⚙️ Τα αρχεία του ${service.toUpperCase()} γράφονται στη βάση αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.`);
+                setIsDownloading(null);
+                return;
+            }
+
+            // Δικλείδα Ασφαλείας: Αν το μέγεθος του blob είναι υπερβολικά μικρό
+            const blob = new Blob([response.data], { type: 'application/zip' });
+            if (blob.size < 50) {
+                alert(`⚠️ Το παραγόμενο αρχείο είναι άδειο (${blob.size} bytes). Κάτι πήγε στραβά κατά τη δημιουργία του ZIP.`);
+                setIsDownloading(null);
+                return;
+            }
+
+            // Κανονικό κατέβασμα
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `vortex-${service}-${jobId?.slice(0, 8)}.zip`);
@@ -81,6 +97,7 @@ const AnalyzedRepo: React.FC = () => {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
+
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             alert("Σφάλμα κατά τη λήψη. Δοκιμάστε ξανά.");
@@ -92,7 +109,6 @@ const AnalyzedRepo: React.FC = () => {
     const safeJsonParse = (data: unknown) => {
         if (!data) return "// Awaiting JSON stream...";
         if (typeof data === 'object') return JSON.stringify(data, null, 4);
-
         return String(data);
     };
 
@@ -156,7 +172,7 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* 3. Downloads: Εδώ χρησιμοποιούμε το tfStatus και ansStatus */}
+            {/* 3. Downloads */}
             {job.status === 'COMPLETED' && (
                 <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-4 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
