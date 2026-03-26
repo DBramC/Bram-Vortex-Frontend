@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import { Loader2, ArrowLeft, Database, Terminal, Download, HardDrive, Cpu } from 'lucide-react';
+import { Loader2, ArrowLeft, Database, Terminal, Download, HardDrive, Cpu, AlertTriangle } from 'lucide-react';
 
 interface AnalysisJob {
     jobId: string;
     repoName: string;
     targetCloud: string;
-    computeType: string; // Προστέθηκε για το logic των κουμπιών
+    computeType: string;
     status: 'ANALYZING' | 'COMPLETED' | 'FAILED';
     promptMessage: string | null;
     blueprintJson: string | null;
@@ -17,18 +17,21 @@ const AnalyzedRepo: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
     const navigate = useNavigate();
     const [job, setJob] = useState<AnalysisJob | null>(null);
+    const [error, setError] = useState<string | null>(null); // Για να βλέπουμε αν έσκασε το API
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
-    // Live Polling για το status της ανάλυσης
     useEffect(() => {
         const fetchJobStatus = async () => {
             try {
                 const response = await api.get(`/dashboard/jobs/${jobId}`);
                 setJob(response.data);
-            } catch (error) {
-                console.error("Error fetching job status", error);
+                setError(null);
+            } catch (error: any) {
+                console.error("API Error:", error);
+                setError(error.response?.data?.message || "Failed to fetch job status. Check Backend logs.");
             }
         };
+
         fetchJobStatus();
         const interval = setInterval(() => {
             if (job?.status !== 'COMPLETED' && job?.status !== 'FAILED') fetchJobStatus();
@@ -36,16 +39,10 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
-    // Συνάρτηση για το κατέβασμα των αρχείων
     const handleDownload = async (service: 'terraform' | 'ansible') => {
         setIsDownloading(service);
         try {
-            // Καλούμε το mapping endpoint (by-analysis)
-            const response = await api.get(`/${service}/download/by-analysis/${jobId}`, {
-                responseType: 'blob', // Απαραίτητο για binary data (ZIP)
-            });
-
-            // Δημιουργία εικονικού link για τη λήψη
+            const response = await api.get(`/${service}/download/by-analysis/${jobId}`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -53,138 +50,119 @@ const AnalyzedRepo: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error(`Error downloading ${service}`, error);
-            alert(`The ${service} package is not ready yet. Check back in a few seconds.`);
+        } catch (e) {
+            alert("Artifact not ready yet.");
         } finally {
             setIsDownloading(null);
         }
     };
 
-    if (!job) return (
-        <div className="h-screen bg-bram-bg flex items-center justify-center">
-            <Loader2 className="animate-spin text-bram-primary" size={64} />
+    // 1. Error State
+    if (error) return (
+        <div className="h-screen bg-bram-bg flex flex-col items-center justify-center text-red-500 p-10 font-mono text-center">
+            <AlertTriangle size={64} className="mb-4" />
+            <h2 className="text-2xl font-black uppercase mb-2">System_Critical_Error</h2>
+            <p className="max-w-md opacity-70">{error}</p>
+            <button onClick={() => navigate('/dashboard')} className="mt-8 border border-red-500 px-6 py-2 rounded-full hover:bg-red-500 hover:text-white transition-all">RETURN_TO_BASE</button>
         </div>
     );
 
-    return (
-        <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased">
+    // 2. Loading State (Βεβαιώσου ότι το bg-bram-bg και text-bram-primary υπάρχουν στο tailwind config)
+    if (!job) return (
+        <div className="h-screen bg-[#050505] flex flex-col items-center justify-center text-emerald-500 font-mono">
+            <Loader2 className="animate-spin mb-4" size={48} />
+            <p className="text-[10px] tracking-[0.5em] uppercase animate-pulse">Establishing_Secure_Link...</p>
+        </div>
+    );
 
-            {/* 1. Header */}
-            <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
-                <div className="flex items-center gap-6 text-left">
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="p-3 bg-slate-100 rounded-full hover:bg-bram-primary-soft hover:text-bram-primary transition-all border-2 border-transparent hover:border-bram-primary"
-                        title="Επιστροφή στο Dashboard"
-                    >
-                        <ArrowLeft size={22} />
+    // Safe JSON Parsing για να μην κρασάρει η σελίδα
+    const renderBlueprint = () => {
+        if (!job.blueprintJson) return "// Awaiting data stream...";
+        try {
+            return JSON.stringify(JSON.parse(job.blueprintJson), null, 4);
+        } catch (e) {
+            return job.blueprintJson; // Αν δεν είναι ακόμα έγκυρο JSON, δείξε το raw string
+        }
+    };
+
+    return (
+        <div className="h-screen bg-[#050505] flex flex-col overflow-hidden p-4 lg:p-8 font-sans antialiased">
+            {/* Header */}
+            <div className="w-full max-w-7xl mx-auto mb-6 bg-[#0a0a0a] border border-emerald-500/20 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
+                <div className="flex items-center gap-6">
+                    <button onClick={() => navigate('/dashboard')} className="p-3 bg-white/5 rounded-full text-emerald-500 hover:bg-emerald-500/20 transition-all border border-emerald-500/20">
+                        <ArrowLeft size={20} />
                     </button>
-                    <div>
-                        <h1 className="text-3xl font-black text-bram-text-main tracking-tighter">
-                            Analyze: <span className="text-bram-primary">{job.repoName}</span>
+                    <div className="text-left">
+                        <h1 className="text-2xl font-black text-white tracking-tighter">
+                            PROJECT: <span className="text-emerald-500">{job.repoName}</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-[10px] uppercase tracking-[0.2em] mt-1">
-                            Platform: <span className="text-bram-text-main">{job.targetCloud}</span> • ID: {job.jobId.slice(0, 8)}
+                        <p className="text-emerald-500/40 font-mono text-[9px] uppercase tracking-[0.3em] mt-1 italic">
+                            Status_Report // {job.targetCloud} // {job.jobId.slice(0, 8)}
                         </p>
                     </div>
                 </div>
-
-                <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest shadow-sm
-                    ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-bram-primary border-bram-primary' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
+                <div className={`px-6 py-1.5 rounded-full font-mono text-[10px] border uppercase tracking-[0.3em]
+                    ${job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/50' : 'bg-blue-500/10 text-blue-400 border-blue-400/50 animate-pulse'}`}>
                     {job.status}
                 </div>
             </div>
 
-            {/* 2. Terminal Grid */}
-            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
-
-                {/* LEFT TERMINAL: System Prompt */}
-                <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden h-full">
-                    <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                            <Terminal size={16} className="text-terminal-prompt" />
-                            <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">System_Prompt.log</span>
-                        </div>
+            {/* Terminals */}
+            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 min-h-0">
+                {/* System Prompt */}
+                <div className="bg-[#080808] rounded-[1.5rem] border border-white/5 shadow-2xl flex flex-col overflow-hidden">
+                    <div className="bg-white/5 px-5 py-2 border-b border-white/5 flex items-center gap-3">
+                        <Terminal size={14} className="text-emerald-500" />
+                        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">system.log</span>
                     </div>
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm leading-relaxed text-terminal-prompt selection:bg-terminal-prompt/20 text-left">
-                        <pre className="whitespace-pre-wrap lowercase">
-                            <span className="opacity-40 mr-2 text-white">$</span>
-                            {job.promptMessage || "Initializing secure AI handshake..."}
-                        </pre>
+                    <div className="p-6 overflow-auto flex-1 font-mono text-[13px] leading-relaxed text-emerald-500/80 text-left">
+                        <pre className="whitespace-pre-wrap"><span className="text-emerald-500 mr-2">$</span>{job.promptMessage || "Waiting for handshake..."}</pre>
                     </div>
                 </div>
 
-                {/* RIGHT TERMINAL: Blueprint */}
-                <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden h-full relative">
-                    <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3 flex-shrink-0">
-                        <Database size={16} className="text-terminal-blueprint" />
-                        <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">Infrastructure_Blueprint.json</span>
+                {/* Blueprint */}
+                <div className="bg-[#080808] rounded-[1.5rem] border border-white/5 shadow-2xl flex flex-col overflow-hidden relative">
+                    <div className="bg-white/5 px-5 py-2 border-b border-white/5 flex items-center gap-3">
+                        <Database size={14} className="text-blue-400" />
+                        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">infra_blueprint.json</span>
                     </div>
-
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm leading-relaxed text-terminal-blueprint selection:bg-terminal-blueprint/20 text-left">
-                        {job.status === 'ANALYZING' ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-10 bg-terminal-bg/90 backdrop-blur-sm z-10">
-                                <Loader2 className="animate-spin text-terminal-blueprint mb-6" size={56} />
-                                <h3 className="text-terminal-blueprint font-black text-xl mb-2 tracking-tighter uppercase">Compiling Blueprint...</h3>
+                    <div className="p-6 overflow-auto flex-1 font-mono text-[13px] leading-relaxed text-blue-400/80 text-left">
+                        {job.status === 'ANALYZING' && (
+                            <div className="absolute inset-0 bg-[#080808]/90 flex flex-col items-center justify-center z-20">
+                                <Loader2 className="animate-spin text-blue-400 mb-4" size={40} />
+                                <span className="text-[9px] text-blue-400/60 uppercase tracking-[0.5em]">Compiling_Architectures...</span>
                             </div>
-                        ) : (
-                            <pre className="whitespace-pre-wrap">
-                                {job.blueprintJson ? JSON.stringify(JSON.parse(job.blueprintJson), null, 4) : "// Awaiting JSON stream..."}
-                            </pre>
                         )}
+                        <pre className="whitespace-pre-wrap">{renderBlueprint()}</pre>
                     </div>
                 </div>
             </div>
 
-            {/* 3. Action Section: Downloads (Εμφανίζεται μόνο όταν status === COMPLETED) */}
+            {/* Downloads */}
             {job.status === 'COMPLETED' && (
                 <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-4 mb-4 flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-                    {/* Terraform Button */}
-                    <button
-                        onClick={() => handleDownload('terraform')}
-                        disabled={isDownloading !== null}
-                        className="flex-1 bg-white hover:bg-slate-50 border-2 border-bram-border p-5 rounded-3xl shadow-xl flex items-center justify-between group transition-all active:scale-95"
-                    >
+                    <button onClick={() => handleDownload('terraform')} disabled={isDownloading !== null} className="flex-1 bg-[#0a0a0a] border border-blue-500/20 hover:border-blue-500 p-5 rounded-2xl flex items-center justify-between group transition-all">
                         <div className="flex items-center gap-4 text-left">
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:scale-110 transition-transform">
-                                <HardDrive size={24} />
-                            </div>
+                            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl group-hover:scale-110 transition-transform"><HardDrive size={22} /></div>
                             <div>
-                                <p className="text-bram-text-main font-black text-sm tracking-tight">Terraform Package</p>
-                                <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">Infra_as_Code.zip</p>
+                                <p className="text-white font-black text-xs uppercase tracking-tighter">Terraform_Package</p>
+                                <p className="text-blue-500/40 font-mono text-[8px] uppercase tracking-widest mt-1">IaC_Stream_Ready</p>
                             </div>
                         </div>
-                        {isDownloading === 'terraform' ? (
-                            <Loader2 className="animate-spin text-blue-600" />
-                        ) : (
-                            <Download className="text-slate-300 group-hover:text-blue-600 transition-colors" size={20} />
-                        )}
+                        {isDownloading === 'terraform' ? <Loader2 className="animate-spin text-blue-500" /> : <Download size={18} className="text-blue-500/30 group-hover:text-blue-500 transition-colors" />}
                     </button>
 
-                    {/* Ansible Button (Μόνο αν είναι VM) */}
                     {(job.computeType === 'VM' || job.computeType === 'Virtual Machine') && (
-                        <button
-                            onClick={() => handleDownload('ansible')}
-                            disabled={isDownloading !== null}
-                            className="flex-1 bg-white hover:bg-slate-50 border-2 border-bram-border p-5 rounded-3xl shadow-xl flex items-center justify-between group transition-all active:scale-95"
-                        >
+                        <button onClick={() => handleDownload('ansible')} disabled={isDownloading !== null} className="flex-1 bg-[#0a0a0a] border border-emerald-500/20 hover:border-emerald-500 p-5 rounded-2xl flex items-center justify-between group transition-all">
                             <div className="flex items-center gap-4 text-left">
-                                <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl group-hover:scale-110 transition-transform">
-                                    <Cpu size={24} />
-                                </div>
+                                <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform"><Cpu size={22} /></div>
                                 <div>
-                                    <p className="text-bram-text-main font-black text-sm tracking-tight">Ansible Playbooks</p>
-                                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">App_Provisioning.zip</p>
+                                    <p className="text-white font-black text-xs uppercase tracking-tighter">Ansible_Playbooks</p>
+                                    <p className="text-emerald-500/40 font-mono text-[8px] uppercase tracking-widest mt-1">Config_Payload_Ready</p>
                                 </div>
                             </div>
-                            {isDownloading === 'ansible' ? (
-                                <Loader2 className="animate-spin text-purple-600" />
-                            ) : (
-                                <Download className="text-slate-300 group-hover:text-purple-600 transition-colors" size={20} />
-                            )}
+                            {isDownloading === 'ansible' ? <Loader2 className="animate-spin text-emerald-500" /> : <Download size={18} className="text-emerald-500/30 group-hover:text-emerald-500 transition-colors" />}
                         </button>
                     )}
                 </div>
