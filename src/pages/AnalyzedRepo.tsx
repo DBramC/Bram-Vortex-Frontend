@@ -10,8 +10,15 @@ interface AnalysisJob {
     computeType: string;
     status: 'ANALYZING' | 'COMPLETED' | 'FAILED';
     promptMessage: string | null;
-    blueprintJson: any | null;
+    blueprintJson: unknown | null;
 }
+
+// Βοηθητική συνάρτηση: καθαρίζει JSON quotes από Spring Boot ResponseEntity<String>
+// π.χ. "COMPLETED" -> COMPLETED
+const sanitizeStatus = (raw: unknown): string => {
+    if (typeof raw !== 'string') return String(raw);
+    return raw.replace(/"/g, '').trim();
+};
 
 const AnalyzedRepo: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
@@ -62,7 +69,7 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId]);
 
-    // 2. Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ INFINITE LOOP: Polling για το Status των Terraform & Ansible
+    // 2. Polling για το Status των Terraform & Ansible
     useEffect(() => {
         // Ξεκινάει μόνο όταν η κεντρική ανάλυση έχει τελειώσει
         if (job?.status !== 'COMPLETED') return;
@@ -76,7 +83,8 @@ const AnalyzedRepo: React.FC = () => {
                 // Έλεγχος Terraform
                 if (tfStatusRef.current !== 'COMPLETED' && tfStatusRef.current !== 'FAILED') {
                     const tfRes = await api.get(`/terraform/status/by-analysis/${jobId}`);
-                    if (isMounted) setTfStatus(tfRes.data);
+                    // ΤΟ FIX: sanitizeStatus αφαιρεί τυχόν JSON quotes που επιστρέφει το Spring Boot
+                    if (isMounted) setTfStatus(sanitizeStatus(tfRes.data));
                 }
 
                 // Έλεγχος Ansible
@@ -86,8 +94,10 @@ const AnalyzedRepo: React.FC = () => {
                     ansStatusRef.current !== 'FAILED'
                 ) {
                     const ansRes = await api.get(`/ansible/status/by-analysis/${jobId}`);
-                    if (isMounted) setAnsStatus(ansRes.data);
+                    // ΤΟ FIX: sanitizeStatus αφαιρεί τυχόν JSON quotes που επιστρέφει το Spring Boot
+                    if (isMounted) setAnsStatus(sanitizeStatus(ansRes.data));
                 }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 console.log("Waiting for generators to sync...");
             }
@@ -99,7 +109,7 @@ const AnalyzedRepo: React.FC = () => {
         // Μετά ρυθμίζουμε το Interval να ρωτάει
         const interval = setInterval(checkGeneratorStatuses, 3000);
 
-        // Cleanup function (Καθαρίζει όταν φεύγουμε από τη σελίδα ή αλλάζει το job)
+        // Cleanup function
         return () => {
             isMounted = false;
             clearInterval(interval);
@@ -107,7 +117,7 @@ const AnalyzedRepo: React.FC = () => {
         // ΠΡΟΣΟΧΗ: ΔΕΝ βάζουμε τα tfStatus / ansStatus εδώ!
     }, [job?.status, jobId, job?.computeType]);
 
-    // 3. Η Διορθωμένη handleDownload (Με έλεγχο 202)
+    // 3. handleDownload
     const handleDownload = async (service: 'terraform' | 'ansible') => {
         setIsDownloading(service);
         try {
@@ -140,6 +150,7 @@ const AnalyzedRepo: React.FC = () => {
             link.remove();
             window.URL.revokeObjectURL(url);
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             alert("Σφάλμα κατά τη λήψη. Δοκιμάστε ξανά.");
         } finally {
