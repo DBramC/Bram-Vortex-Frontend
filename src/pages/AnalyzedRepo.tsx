@@ -1,49 +1,30 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import { Loader2, ArrowLeft, Database, Terminal, HardDrive, Cpu, CheckCircle2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Database, Terminal, CheckCircle2, Download, ShieldCheck, AlertCircle } from 'lucide-react';
 
 interface AnalysisJob {
     jobId: string;
     repoName: string;
     targetCloud: string;
     computeType: string;
-    status: 'ANALYZING' | 'COMPLETED' | 'FAILED';
+    // Ενημερωμένα statuses από τον Orchestrator
+    status: 'PENDING' | 'ANALYZING' | 'READY_FOR_CHECK' | 'COMPLETED' | 'FAILED';
+    terraformStatus: string;
+    ansibleStatus: string;
+    pipelineStatus: string;
     promptMessage: string | null;
     blueprintJson: unknown | null;
 }
-
-// Βοηθητική συνάρτηση: καθαρίζει JSON quotes από Spring Boot ResponseEntity<String>
-// π.χ. "COMPLETED" -> COMPLETED
-const sanitizeStatus = (raw: unknown): string => {
-    if (typeof raw !== 'string') return String(raw);
-    return raw.replace(/"/g, '').trim();
-};
 
 const AnalyzedRepo: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
     const navigate = useNavigate();
     const [job, setJob] = useState<AnalysisJob | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
 
-    // Καταστάσεις των Generators
-    const [tfStatus, setTfStatus] = useState<string>('GENERATING');
-    const [ansStatus, setAnsStatus] = useState<string>('GENERATING');
-    const [isDownloading, setIsDownloading] = useState<string | null>(null);
-
-    // Χρήση Refs για να κρατάμε τα τρέχοντα statuses χωρίς να τα βάζουμε στα dependencies
-    // Αυτό αποτρέπει το Infinite Loop!
-    const tfStatusRef = useRef(tfStatus);
-    const ansStatusRef = useRef(ansStatus);
-
-    useEffect(() => {
-        tfStatusRef.current = tfStatus;
-    }, [tfStatus]);
-
-    useEffect(() => {
-        ansStatusRef.current = ansStatus;
-    }, [ansStatus]);
-
-    // 1. Polling για την κεντρική Ανάλυση
+    // 1. Polling ΜΟΝΟ στον Repo Analyzer
+    // Πλέον ο Analyzer επιστρέφει και τα statuses των επιμέρους generators
     useEffect(() => {
         const fetchJobStatus = async () => {
             try {
@@ -55,113 +36,48 @@ const AnalyzedRepo: React.FC = () => {
         };
 
         fetchJobStatus();
-
         const interval = setInterval(() => {
-            // Αν δεν είναι COMPLETED/FAILED, ρώτα ξανά
-            setJob(currentJob => {
-                if (currentJob?.status !== 'COMPLETED' && currentJob?.status !== 'FAILED') {
-                    fetchJobStatus();
-                }
-                return currentJob;
-            });
+            // Σταματάμε το polling μόνο αν αποτύχει ή αν ολοκληρωθεί πλήρως
+            if (job?.status !== 'COMPLETED' && job?.status !== 'FAILED') {
+                fetchJobStatus();
+            }
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [jobId]);
+    }, [jobId, job?.status]);
 
-    // 2. Polling για το Status των Terraform & Ansible
-    useEffect(() => {
-        // Ξεκινάει μόνο όταν η κεντρική ανάλυση έχει τελειώσει
-        if (job?.status !== 'COMPLETED') return;
-
-        let isMounted = true;
-
-        const checkGeneratorStatuses = async () => {
-            if (!isMounted) return;
-
-            try {
-                // Έλεγχος Terraform
-                if (tfStatusRef.current !== 'COMPLETED' && tfStatusRef.current !== 'FAILED') {
-                    const tfRes = await api.get(`/terraform/status/by-analysis/${jobId}`);
-                    // ΤΟ FIX: sanitizeStatus αφαιρεί τυχόν JSON quotes που επιστρέφει το Spring Boot
-                    if (isMounted) setTfStatus(sanitizeStatus(tfRes.data));
-                }
-
-                // Έλεγχος Ansible
-                if (
-                    (job.computeType === 'VM' || job.computeType === 'Virtual Machine') &&
-                    ansStatusRef.current !== 'COMPLETED' &&
-                    ansStatusRef.current !== 'FAILED'
-                ) {
-                    const ansRes = await api.get(`/ansible/status/by-analysis/${jobId}`);
-                    // ΤΟ FIX: sanitizeStatus αφαιρεί τυχόν JSON quotes που επιστρέφει το Spring Boot
-                    if (isMounted) setAnsStatus(sanitizeStatus(ansRes.data));
-                }
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (error) {
-                console.log("Waiting for generators to sync...");
-            }
-        };
-
-        // Εκτελούμε αμέσως την πρώτη φορά
-        checkGeneratorStatuses();
-
-        // Μετά ρυθμίζουμε το Interval να ρωτάει
-        const interval = setInterval(checkGeneratorStatuses, 3000);
-
-        // Cleanup function
-        return () => {
-            isMounted = false;
-            clearInterval(interval);
-        };
-        // ΠΡΟΣΟΧΗ: ΔΕΝ βάζουμε τα tfStatus / ansStatus εδώ!
-    }, [job?.status, jobId, job?.computeType]);
-
-    // 3. handleDownload
-    const handleDownload = async (service: 'terraform' | 'ansible') => {
-        setIsDownloading(service);
+    // 2. Ενιαίο Download για το Master ZIP
+    const handleDownloadMaster = async () => {
+        setIsDownloading(true);
         try {
-            const response = await api.get(`/${service}/download/by-analysis/${jobId}`, {
+            const response = await api.get(`/dashboard/jobs/${jobId}/download`, {
                 responseType: 'blob',
             });
 
-            // Αν το backend επιστρέψει 202, σταματάμε.
-            if (response.status === 202) {
-                alert(`⚙️ Τα αρχεία του ${service.toUpperCase()} γράφονται στη βάση αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.`);
-                setIsDownloading(null);
-                return;
-            }
-
-            // Δικλείδα Ασφαλείας: Αν το μέγεθος του blob είναι υπερβολικά μικρό
             const blob = new Blob([response.data], { type: 'application/zip' });
-            if (blob.size < 50) {
-                alert(`⚠️ Το παραγόμενο αρχείο είναι άδειο (${blob.size} bytes). Κάτι πήγε στραβά κατά τη δημιουργία του ZIP.`);
-                setIsDownloading(null);
-                return;
-            }
-
-            // Κανονικό κατέβασμα
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `vortex-${service}-${jobId?.slice(0, 8)}.zip`);
+            // Ονοματοδοσία ανάλογα με το στάδιο
+            const fileName = job?.status === 'COMPLETED' ? `final-project-${jobId}.zip` : `draft-project-${jobId}.zip`;
+            link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
-            alert("Σφάλμα κατά τη λήψη. Δοκιμάστε ξανά.");
+            alert("Το αρχείο δεν είναι έτοιμο ή υπήρξε σφάλμα.");
         } finally {
-            setIsDownloading(null);
+            setIsDownloading(false);
         }
     };
 
-    const safeJsonParse = (data: unknown) => {
-        if (!data) return "// Awaiting JSON stream...";
-        if (typeof data === 'object') return JSON.stringify(data, null, 4);
-        return String(data);
+    // Βοηθητικό για τα εικονίδια των microservices
+    const getMiniStatusIcon = (status: string) => {
+        if (status === 'COMPLETED' || status === 'SKIPPED') return <CheckCircle2 size={16} className="text-emerald-500" />;
+        if (status === 'FAILED') return <AlertCircle size={16} className="text-red-500" />;
+        return <Loader2 size={16} className="animate-spin text-bram-primary" />;
     };
 
     if (!job) return (
@@ -173,120 +89,95 @@ const AnalyzedRepo: React.FC = () => {
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased text-left">
 
-            {/* 1. Header */}
-            <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
+            {/* Header */}
+            <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-6">
-                    <button onClick={() => navigate('/dashboard')} className="p-3 bg-slate-100 rounded-full hover:bg-bram-primary-soft border-2 border-transparent transition-all">
+                    <button onClick={() => navigate('/dashboard')} className="p-3 bg-slate-100 rounded-full hover:bg-bram-primary-soft transition-all">
                         <ArrowLeft size={22} />
                     </button>
                     <div>
                         <h1 className="text-3xl font-black text-bram-text-main tracking-tighter">
                             Analyze: <span className="text-bram-primary">{job.repoName}</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-[10px] uppercase tracking-[0.2em] mt-1">
-                            Platform: <span className="text-bram-text-main">{job.targetCloud}</span> • ID: {job.jobId.slice(0, 8)}
+                        <p className="text-bram-text-muted font-black text-[10px] uppercase tracking-[0.2em]">
+                            Target: {job.targetCloud} • {job.computeType}
                         </p>
                     </div>
                 </div>
-                <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest shadow-sm
-                    ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-bram-primary border-bram-primary' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
-                    {job.status}
+                <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest
+                    ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
+                    {job.status.replace(/_/g, ' ')}
                 </div>
             </div>
 
-            {/* 2. Terminals */}
+            {/* Terminals */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
-                <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden h-full">
+                <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
                         <Terminal size={16} className="text-terminal-prompt" />
-                        <span className="font-black text-[10px] uppercase text-slate-400 font-sans">System_Prompt.log</span>
+                        <span className="font-black text-[10px] uppercase text-slate-400">Analysis_Logs</span>
                     </div>
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm leading-relaxed text-terminal-prompt">
-                        <pre className="whitespace-pre-wrap"><span className="opacity-40 mr-2 text-white">$</span>{job.promptMessage || "Handshaking..."}</pre>
+                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-prompt">
+                        <pre className="whitespace-pre-wrap">{job.promptMessage || "Initializing..."}</pre>
                     </div>
                 </div>
 
-                <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden h-full relative">
+                <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
                         <Database size={16} className="text-terminal-blueprint" />
-                        <span className="font-black text-[10px] uppercase text-slate-400 font-sans">Infra_Blueprint.json</span>
+                        <span className="font-black text-[10px] uppercase text-slate-400">Infra_Blueprint.json</span>
                     </div>
                     <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint">
-                        {job.status === 'ANALYZING' ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-terminal-bg/90 backdrop-blur-sm z-10">
-                                <Loader2 className="animate-spin text-terminal-blueprint mb-6" size={56} />
-                                <h3 className="text-terminal-blueprint font-black uppercase font-sans">Compiling...</h3>
-                            </div>
-                        ) : (
-                            <pre className="whitespace-pre-wrap">{safeJsonParse(job.blueprintJson)}</pre>
-                        )}
+                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Awaiting JSON stream..."}</pre>
                     </div>
                 </div>
             </div>
 
-            {/* 3. Downloads */}
-            {job.status === 'COMPLETED' && (
-                <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-4 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* New Control Panel */}
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
 
-                    {/* Terraform Button */}
+                {/* Microservices Status Bar */}
+                <div className="flex-1 flex gap-6">
+                    <div className="flex items-center gap-2">
+                        {getMiniStatusIcon(job.terraformStatus)}
+                        <span className="text-[10px] font-black uppercase text-slate-500">Terraform</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {getMiniStatusIcon(job.ansibleStatus)}
+                        <span className="text-[10px] font-black uppercase text-slate-500">Ansible</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {getMiniStatusIcon(job.pipelineStatus)}
+                        <span className="text-[10px] font-black uppercase text-slate-500">CI/CD</span>
+                    </div>
+                </div>
+
+                {/* Dynamic Action Buttons */}
+                <div className="flex gap-4">
+                    {/* Το κουμπί Download που αλλάζει κείμενο ανάλογα με το στάδιο */}
                     <button
-                        onClick={() => handleDownload('terraform')}
-                        disabled={tfStatus !== 'COMPLETED' || isDownloading !== null}
-                        className={`flex-1 p-5 rounded-3xl shadow-xl flex items-center justify-between transition-all active:scale-95 border-2 
-                            ${tfStatus === 'COMPLETED' ? 'bg-white border-bram-border hover:bg-slate-50' : 'bg-slate-50 border-dashed border-slate-200 opacity-60 cursor-not-allowed'}`}
+                        onClick={handleDownloadMaster}
+                        disabled={job.status === 'ANALYZING' || isDownloading}
+                        className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
+                            ${(job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED')
+                            ? 'bg-bram-primary text-white hover:bg-blue-700'
+                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                     >
-                        <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-2xl ${tfStatus === 'COMPLETED' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
-                                <HardDrive size={24} />
-                            </div>
-                            <div>
-                                <p className="text-bram-text-main font-black text-sm uppercase tracking-tight">Terraform Package</p>
-                                <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-1">
-                                    {tfStatus === 'COMPLETED' ? 'Artifact Ready' :
-                                        tfStatus === 'FAILED' ? 'Generation Failed' : 'Generating Infrastructure...'}
-                                </p>
-                            </div>
-                        </div>
-                        {tfStatus === 'COMPLETED' ? (
-                            <CheckCircle2 size={20} className="text-emerald-500" />
-                        ) : tfStatus === 'FAILED' ? (
-                            <span className="text-red-500 font-bold">❌</span>
-                        ) : (
-                            <Loader2 className="animate-spin text-blue-600" size={20} />
-                        )}
+                        {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                        {job.status === 'COMPLETED' ? "Download Final Package" : "Download Draft Package"}
                     </button>
 
-                    {/* Ansible Button */}
-                    {(job.computeType === 'VM' || job.computeType === 'Virtual Machine') && (
+                    {/* Το κουμπί για τον Architecture Checker (θα το ενεργοποιήσουμε μετά) */}
+                    {job.status === 'READY_FOR_CHECK' && (
                         <button
-                            onClick={() => handleDownload('ansible')}
-                            disabled={ansStatus !== 'COMPLETED' || isDownloading !== null}
-                            className={`flex-1 p-5 rounded-3xl shadow-xl flex items-center justify-between transition-all active:scale-95 border-2 
-                                ${ansStatus === 'COMPLETED' ? 'bg-white border-bram-border hover:bg-slate-50' : 'bg-slate-50 border-dashed border-slate-200 opacity-60 cursor-not-allowed'}`}
+                            className="flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
                         >
-                            <div className="flex items-center gap-4">
-                                <div className={`p-3 rounded-2xl ${ansStatus === 'COMPLETED' ? 'bg-purple-50 text-purple-600' : 'bg-slate-100 text-slate-400'}`}>
-                                    <Cpu size={24} />
-                                </div>
-                                <div>
-                                    <p className="text-bram-text-main font-black text-sm uppercase tracking-tight">Ansible Playbooks</p>
-                                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-1">
-                                        {ansStatus === 'COMPLETED' ? 'Artifact Ready' :
-                                            ansStatus === 'FAILED' ? 'Generation Failed' : 'Configuring OS Roles...'}
-                                    </p>
-                                </div>
-                            </div>
-                            {ansStatus === 'COMPLETED' ? (
-                                <CheckCircle2 size={20} className="text-emerald-500" />
-                            ) : ansStatus === 'FAILED' ? (
-                                <span className="text-red-500 font-bold">❌</span>
-                            ) : (
-                                <Loader2 className="animate-spin text-purple-600" size={20} />
-                            )}
+                            <ShieldCheck size={18} />
+                            Run Architecture Check
                         </button>
                     )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
