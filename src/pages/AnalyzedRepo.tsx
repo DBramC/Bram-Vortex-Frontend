@@ -9,7 +9,6 @@ interface AnalysisJob {
     targetCloud: string;
     computeType: string;
     status: string;
-    // Υποστήριξη και για τους δύο τύπους ονομασίας (Backend compatibility)
     terraformStatus?: string;
     terraform_status?: string;
     ansibleStatus?: string;
@@ -26,7 +25,7 @@ const AnalyzedRepo: React.FC = () => {
     const [job, setJob] = useState<AnalysisJob | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    // 1. Polling στον Repo Analyzer
+    // 1. Polling για ανανέωση των logs και των statuses
     useEffect(() => {
         const fetchJobStatus = async () => {
             try {
@@ -39,6 +38,7 @@ const AnalyzedRepo: React.FC = () => {
 
         fetchJobStatus();
         const interval = setInterval(() => {
+            // Συνεχίζουμε το polling αν δεν έχει ολοκληρωθεί η διαδικασία
             if (job?.status !== 'COMPLETED' && job?.status !== 'FAILED') {
                 fetchJobStatus();
             }
@@ -47,36 +47,40 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
-    // 2. Download Master ZIP
+    // 2. Download Master ZIP - ΔΙΟΡΘΩΜΕΝΟ URL
     const handleDownloadMaster = async () => {
         setIsDownloading(true);
         try {
-            const response = await api.get(`/dashboard/jobs/${jobId}/download`, {
+            // ΠΡΟΣΟΧΗ: Το URL πρέπει να είναι ακριβώς όπως το GetMapping του Controller σου
+            const response = await api.get(`/dashboard/download/${jobId}`, {
                 responseType: 'blob',
             });
 
+            // Δημιουργία του αρχείου από το Blob
             const blob = new Blob([response.data], { type: 'application/zip' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            const fileName = job?.status === 'COMPLETED' ? `final-project-${jobId}.zip` : `draft-project-${jobId}.zip`;
+
+            const fileName = `vortex-package-${jobId}.zip`;
             link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
+
+            // Clean up
             link.remove();
             window.URL.revokeObjectURL(url);
-        } catch (error) {
-            alert("Το αρχείο δεν είναι έτοιμο ή υπήρξε σφάλμα.");
+        } catch (error: unknown) {
+            console.error("Download Error Details:", error);
+            // Αν ο server επιστρέψει 404/500 με blob, το error.response.data είναι blob
+            alert("Σφάλμα λήψης: Το αρχείο ίσως δεν έχει δημιουργηθεί ακόμα στη βάση.");
         } finally {
             setIsDownloading(false);
         }
     };
 
-    // 3. Robust Status Checker (Καθαρίζει quotes, κενά και ελέγχει snake_case/camelCase)
     const getMiniStatusIcon = (rawStatus: string | undefined) => {
         if (!rawStatus) return <Loader2 size={16} className="animate-spin text-bram-primary" />;
-
-        // Καθαρισμός: "COMPLETED" -> COMPLETED
         const status = rawStatus.replace(/"/g, '').trim().toUpperCase();
 
         if (status === 'COMPLETED' || status === 'SKIPPED') {
@@ -85,7 +89,6 @@ const AnalyzedRepo: React.FC = () => {
         if (status === 'FAILED') {
             return <AlertCircle size={16} className="text-red-500" />;
         }
-        // default: Pending/Generating
         return <Loader2 size={16} className="animate-spin text-bram-primary" />;
     };
 
@@ -94,6 +97,9 @@ const AnalyzedRepo: React.FC = () => {
             <Loader2 className="animate-spin text-bram-primary" size={64} />
         </div>
     );
+
+    // Έλεγχος αν επιτρέπεται το download
+    const canDownload = job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED';
 
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased text-left">
@@ -114,61 +120,62 @@ const AnalyzedRepo: React.FC = () => {
                     </div>
                 </div>
                 <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest
-                    ${(job.status === 'COMPLETED' || job.status === 'READY_FOR_CHECK') ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
+                    ${canDownload ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
                     {job.status.replace(/_/g, ' ')}
                 </div>
             </div>
 
             {/* Terminals */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
+                {/* AI Prompts Terminal */}
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
                         <Terminal size={16} className="text-terminal-prompt" />
                         <span className="font-black text-[10px] uppercase text-slate-400">Analysis_Logs</span>
                     </div>
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-prompt">
-                        <pre className="whitespace-pre-wrap">{job.promptMessage || "Initializing..."}</pre>
+                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-prompt scrollbar-hide">
+                        <pre className="whitespace-pre-wrap">{job.promptMessage || "Initializing AI Analysis..."}</pre>
                     </div>
                 </div>
 
+                {/* Blueprint JSON Terminal */}
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
                         <Database size={16} className="text-terminal-blueprint" />
                         <span className="font-black text-[10px] uppercase text-slate-400">Infra_Blueprint.json</span>
                     </div>
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint">
-                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Awaiting JSON stream..."}</pre>
+                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint scrollbar-hide">
+                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Awaiting blueprint data..."}</pre>
                     </div>
                 </div>
             </div>
 
-            {/* Bottom Control Panel */}
+            {/* Control Panel */}
             <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
 
-                {/* Microservices Status Bar */}
-                <div className="flex-1 flex gap-6">
-                    <div className="flex items-center gap-2">
-                        {/* Δοκιμάζουμε και τα δύο πιθανά ονόματα πεδίων */}
+                {/* Microservices Status */}
+                <div className="flex-1 flex gap-10">
+                    <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.terraformStatus || job.terraform_status)}
-                        <span className="text-[10px] font-black uppercase text-slate-500">Terraform</span>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Terraform</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.ansibleStatus || job.ansible_status)}
-                        <span className="text-[10px] font-black uppercase text-slate-500">Ansible</span>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Ansible</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.pipelineStatus || job.pipeline_status)}
-                        <span className="text-[10px] font-black uppercase text-slate-500">CI/CD</span>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">CI/CD</span>
                     </div>
                 </div>
 
-                {/* Buttons */}
+                {/* Actions */}
                 <div className="flex gap-4">
                     <button
                         onClick={handleDownloadMaster}
-                        disabled={!(job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED') || isDownloading}
-                        className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
-                            ${(job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED')
+                        disabled={!canDownload || isDownloading}
+                        className={`flex items-center gap-3 px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
+                            ${canDownload
                             ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                             : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                     >
@@ -177,9 +184,7 @@ const AnalyzedRepo: React.FC = () => {
                     </button>
 
                     {job.status === 'READY_FOR_CHECK' && (
-                        <button
-                            className="flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight bg-bram-primary text-white hover:bg-blue-700 transition-all shadow-lg active:scale-95"
-                        >
+                        <button className="flex items-center gap-3 px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-tight bg-bram-primary text-white hover:bg-blue-700 transition-all shadow-lg active:scale-95">
                             <ShieldCheck size={18} />
                             Run Architecture Check
                         </button>
