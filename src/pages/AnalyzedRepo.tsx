@@ -8,11 +8,14 @@ interface AnalysisJob {
     repoName: string;
     targetCloud: string;
     computeType: string;
-    // Ενημερωμένα statuses από τον Orchestrator
-    status: 'PENDING' | 'ANALYZING' | 'READY_FOR_CHECK' | 'COMPLETED' | 'FAILED';
-    terraformStatus: string;
-    ansibleStatus: string;
-    pipelineStatus: string;
+    status: string;
+    // Υποστήριξη και για τους δύο τύπους ονομασίας (Backend compatibility)
+    terraformStatus?: string;
+    terraform_status?: string;
+    ansibleStatus?: string;
+    ansible_status?: string;
+    pipelineStatus?: string;
+    pipeline_status?: string;
     promptMessage: string | null;
     blueprintJson: unknown | null;
 }
@@ -23,8 +26,7 @@ const AnalyzedRepo: React.FC = () => {
     const [job, setJob] = useState<AnalysisJob | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    // 1. Polling ΜΟΝΟ στον Repo Analyzer
-    // Πλέον ο Analyzer επιστρέφει και τα statuses των επιμέρους generators
+    // 1. Polling στον Repo Analyzer
     useEffect(() => {
         const fetchJobStatus = async () => {
             try {
@@ -37,7 +39,6 @@ const AnalyzedRepo: React.FC = () => {
 
         fetchJobStatus();
         const interval = setInterval(() => {
-            // Σταματάμε το polling μόνο αν αποτύχει ή αν ολοκληρωθεί πλήρως
             if (job?.status !== 'COMPLETED' && job?.status !== 'FAILED') {
                 fetchJobStatus();
             }
@@ -46,7 +47,7 @@ const AnalyzedRepo: React.FC = () => {
         return () => clearInterval(interval);
     }, [jobId, job?.status]);
 
-    // 2. Ενιαίο Download για το Master ZIP
+    // 2. Download Master ZIP
     const handleDownloadMaster = async () => {
         setIsDownloading(true);
         try {
@@ -58,14 +59,12 @@ const AnalyzedRepo: React.FC = () => {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            // Ονοματοδοσία ανάλογα με το στάδιο
             const fileName = job?.status === 'COMPLETED' ? `final-project-${jobId}.zip` : `draft-project-${jobId}.zip`;
             link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             alert("Το αρχείο δεν είναι έτοιμο ή υπήρξε σφάλμα.");
         } finally {
@@ -73,10 +72,20 @@ const AnalyzedRepo: React.FC = () => {
         }
     };
 
-    // Βοηθητικό για τα εικονίδια των microservices
-    const getMiniStatusIcon = (status: string) => {
-        if (status === 'COMPLETED' || status === 'SKIPPED') return <CheckCircle2 size={16} className="text-emerald-500" />;
-        if (status === 'FAILED') return <AlertCircle size={16} className="text-red-500" />;
+    // 3. Robust Status Checker (Καθαρίζει quotes, κενά και ελέγχει snake_case/camelCase)
+    const getMiniStatusIcon = (rawStatus: string | undefined) => {
+        if (!rawStatus) return <Loader2 size={16} className="animate-spin text-bram-primary" />;
+
+        // Καθαρισμός: "COMPLETED" -> COMPLETED
+        const status = rawStatus.replace(/"/g, '').trim().toUpperCase();
+
+        if (status === 'COMPLETED' || status === 'SKIPPED') {
+            return <CheckCircle2 size={16} className="text-emerald-500" />;
+        }
+        if (status === 'FAILED') {
+            return <AlertCircle size={16} className="text-red-500" />;
+        }
+        // default: Pending/Generating
         return <Loader2 size={16} className="animate-spin text-bram-primary" />;
     };
 
@@ -105,7 +114,7 @@ const AnalyzedRepo: React.FC = () => {
                     </div>
                 </div>
                 <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest
-                    ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
+                    ${(job.status === 'COMPLETED' || job.status === 'READY_FOR_CHECK') ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
                     {job.status.replace(/_/g, ' ')}
                 </div>
             </div>
@@ -133,44 +142,43 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* New Control Panel */}
+            {/* Bottom Control Panel */}
             <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
 
                 {/* Microservices Status Bar */}
                 <div className="flex-1 flex gap-6">
                     <div className="flex items-center gap-2">
-                        {getMiniStatusIcon(job.terraformStatus)}
+                        {/* Δοκιμάζουμε και τα δύο πιθανά ονόματα πεδίων */}
+                        {getMiniStatusIcon(job.terraformStatus || job.terraform_status)}
                         <span className="text-[10px] font-black uppercase text-slate-500">Terraform</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        {getMiniStatusIcon(job.ansibleStatus)}
+                        {getMiniStatusIcon(job.ansibleStatus || job.ansible_status)}
                         <span className="text-[10px] font-black uppercase text-slate-500">Ansible</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        {getMiniStatusIcon(job.pipelineStatus)}
+                        {getMiniStatusIcon(job.pipelineStatus || job.pipeline_status)}
                         <span className="text-[10px] font-black uppercase text-slate-500">CI/CD</span>
                     </div>
                 </div>
 
-                {/* Dynamic Action Buttons */}
+                {/* Buttons */}
                 <div className="flex gap-4">
-                    {/* Το κουμπί Download που αλλάζει κείμενο ανάλογα με το στάδιο */}
                     <button
                         onClick={handleDownloadMaster}
                         disabled={job.status === 'ANALYZING' || isDownloading}
                         className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
                             ${(job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED')
-                            ? 'bg-bram-primary text-white hover:bg-blue-700'
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                             : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                     >
                         {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
                         {job.status === 'COMPLETED' ? "Download Final Package" : "Download Draft Package"}
                     </button>
 
-                    {/* Το κουμπί για τον Architecture Checker (θα το ενεργοποιήσουμε μετά) */}
                     {job.status === 'READY_FOR_CHECK' && (
                         <button
-                            className="flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
+                            className="flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight bg-bram-primary text-white hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                         >
                             <ShieldCheck size={18} />
                             Run Architecture Check
