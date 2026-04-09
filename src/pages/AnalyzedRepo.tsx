@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { Loader2, ArrowLeft, Database, Terminal, CheckCircle2, Download, ShieldCheck, AlertCircle } from 'lucide-react';
@@ -25,55 +25,61 @@ const AnalyzedRepo: React.FC = () => {
     const [job, setJob] = useState<AnalysisJob | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    // 1. Polling για ανανέωση των logs και των statuses
+    // Χρησιμοποιούμε ένα ref για να ξέρουμε πότε να σταματήσουμε το polling
+    const stopPolling = useRef(false);
+
+    // 1. Ρωμαλέο Polling: Αντέχει ακόμα και αν το Job δεν βρεθεί αμέσως (404)
     useEffect(() => {
         const fetchJobStatus = async () => {
+            if (stopPolling.current) return;
+
             try {
                 const response = await api.get(`/dashboard/jobs/${jobId}`);
                 setJob(response.data);
+
+                // Αν φτάσαμε σε τελικό status, σταματάμε τα requests
+                const currentStatus = response.data.status;
+                if (['COMPLETED', 'FAILED', 'READY_FOR_CHECK'].includes(currentStatus)) {
+                    stopPolling.current = true;
+                }
             } catch (error) {
-                console.error("Error fetching job status", error);
+                // Αν φάμε 404 στην αρχή, απλά περιμένουμε το επόμενο tick του interval
+                console.warn("⏳ Job not found yet, retrying...");
             }
         };
 
+        // Τρέχουμε αμέσως την πρώτη φορά
         fetchJobStatus();
-        const interval = setInterval(() => {
-            // Συνεχίζουμε το polling αν δεν έχει ολοκληρωθεί η διαδικασία
-            if (job?.status !== 'COMPLETED' && job?.status !== 'FAILED') {
-                fetchJobStatus();
-            }
-        }, 3000);
 
-        return () => clearInterval(interval);
-    }, [jobId, job?.status]);
+        // Κάθε 3 δευτερόλεπτα
+        const intervalId = setInterval(fetchJobStatus, 3000);
 
-    // 2. Download Master ZIP - ΔΙΟΡΘΩΜΕΝΟ URL
+        return () => {
+            clearInterval(intervalId);
+            stopPolling.current = true;
+        };
+    }, [jobId]); // Μόνο το jobId ως dependency
+
+    // 2. Download Master ZIP - Χρήση του σωστού endpoint
     const handleDownloadMaster = async () => {
         setIsDownloading(true);
         try {
-            // ΠΡΟΣΟΧΗ: Το URL πρέπει να είναι ακριβώς όπως το GetMapping του Controller σου
             const response = await api.get(`/dashboard/download/${jobId}`, {
                 responseType: 'blob',
             });
 
-            // Δημιουργία του αρχείου από το Blob
             const blob = new Blob([response.data], { type: 'application/zip' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-
-            const fileName = `vortex-package-${jobId}.zip`;
-            link.setAttribute('download', fileName);
+            link.setAttribute('download', `vortex-package-${jobId}.zip`);
             document.body.appendChild(link);
             link.click();
-
-            // Clean up
             link.remove();
             window.URL.revokeObjectURL(url);
-        } catch (error: unknown) {
-            console.error("Download Error Details:", error);
-            // Αν ο server επιστρέψει 404/500 με blob, το error.response.data είναι blob
-            alert("Σφάλμα λήψης: Το αρχείο ίσως δεν έχει δημιουργηθεί ακόμα στη βάση.");
+        } catch (error) {
+            console.error("Download error:", error);
+            alert("Το αρχείο δεν είναι έτοιμο στη βάση δεδομένων ακόμα.");
         } finally {
             setIsDownloading(false);
         }
@@ -92,13 +98,16 @@ const AnalyzedRepo: React.FC = () => {
         return <Loader2 size={16} className="animate-spin text-bram-primary" />;
     };
 
+    // Εμφάνιση Loader αν το Job είναι ακόμα null
     if (!job) return (
-        <div className="h-screen bg-bram-bg flex items-center justify-center">
+        <div className="h-screen bg-bram-bg flex flex-col items-center justify-center gap-4">
             <Loader2 className="animate-spin text-bram-primary" size={64} />
+            <p className="text-white font-black text-xs uppercase tracking-widest animate-pulse">
+                Initializing Workspace...
+            </p>
         </div>
     );
 
-    // Έλεγχος αν επιτρέπεται το download
     const canDownload = job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED';
 
     return (
@@ -127,25 +136,23 @@ const AnalyzedRepo: React.FC = () => {
 
             {/* Terminals */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
-                {/* AI Prompts Terminal */}
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
                         <Terminal size={16} className="text-terminal-prompt" />
-                        <span className="font-black text-[10px] uppercase text-slate-400">Analysis_Logs</span>
+                        <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Analysis_Logs</span>
                     </div>
                     <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-prompt scrollbar-hide">
-                        <pre className="whitespace-pre-wrap">{job.promptMessage || "Initializing AI Analysis..."}</pre>
+                        <pre className="whitespace-pre-wrap">{job.promptMessage || "> Connecting to Gemini AI...\n> Fetching manifest content..."}</pre>
                     </div>
                 </div>
 
-                {/* Blueprint JSON Terminal */}
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
                         <Database size={16} className="text-terminal-blueprint" />
-                        <span className="font-black text-[10px] uppercase text-slate-400">Infra_Blueprint.json</span>
+                        <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Infra_Blueprint.json</span>
                     </div>
                     <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint scrollbar-hide">
-                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Awaiting blueprint data..."}</pre>
+                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Parsing architecture requirements..."}</pre>
                     </div>
                 </div>
             </div>
@@ -153,23 +160,21 @@ const AnalyzedRepo: React.FC = () => {
             {/* Control Panel */}
             <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
 
-                {/* Microservices Status */}
                 <div className="flex-1 flex gap-10">
                     <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.terraformStatus || job.terraform_status)}
-                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Terraform</span>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Terraform</span>
                     </div>
                     <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.ansibleStatus || job.ansible_status)}
-                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Ansible</span>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ansible</span>
                     </div>
                     <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.pipelineStatus || job.pipeline_status)}
-                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">CI/CD</span>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">CI/CD Pipeline</span>
                     </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-4">
                     <button
                         onClick={handleDownloadMaster}
@@ -186,7 +191,7 @@ const AnalyzedRepo: React.FC = () => {
                     {job.status === 'READY_FOR_CHECK' && (
                         <button className="flex items-center gap-3 px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-tight bg-bram-primary text-white hover:bg-blue-700 transition-all shadow-lg active:scale-95">
                             <ShieldCheck size={18} />
-                            Run Architecture Check
+                            Verify Architecture
                         </button>
                     )}
                 </div>
