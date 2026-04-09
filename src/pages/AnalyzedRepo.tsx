@@ -166,7 +166,7 @@ const AnalyzedRepo: React.FC = () => {
                 <div className="flex gap-4">
                     <button
                         onClick={handleDownloadMaster}
-                        disabled={job.status === 'ANALYZING' || isDownloading}
+                        disabled={!(job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED') || isDownloading}
                         className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
                             ${(job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED')
                             ? 'bg-emerald-600 text-white hover:bg-emerald-700'
