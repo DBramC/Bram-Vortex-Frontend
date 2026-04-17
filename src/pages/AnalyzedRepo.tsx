@@ -73,6 +73,7 @@ const AnalyzedRepo: React.FC = () => {
         };
     }, [jobId]);
 
+    // Φιλτράρισμα και ομαδοποίηση αρχείων για την Sidebar
     const categories = useMemo(() => {
         const groups: Record<string, DiffFile[]> = {
             'INFRASTRUCTURE': diffData.filter(f => f.filename.includes('INFRASTRUCTURE')),
@@ -127,10 +128,8 @@ const AnalyzedRepo: React.FC = () => {
                 setDiffData(files);
                 if (files.length > 0) {
                     setSelectedFile(files[0]);
-                    const firstCat = files[0].filename.split(':')[0];
-                    setActiveCategory(firstCat);
+                    setIsReviewOpen(true);
                 }
-                setIsReviewOpen(true);
             }
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Review failed to load."); } finally { setIsFetchingDiff(false); }
@@ -160,8 +159,8 @@ const AnalyzedRepo: React.FC = () => {
         </div>
     );
 
-    // --- ΤΩΡΑ ΕΔΩ ΟΡΙΖΟΥΜΕ ΤΑ SERVICES ΧΩΡΙΣ ANY ---
-    const serviceList = [
+    // --- ESLINT FIX: Explicit mapping instead of (job as any) ---
+    const serviceStatuses = [
         { name: 'Terraform', status: job.terraformStatus || job.terraform_status },
         { name: 'Ansible', status: job.ansibleStatus || job.ansible_status },
         { name: 'Pipeline', status: job.pipelineStatus || job.pipeline_status },
@@ -173,7 +172,7 @@ const AnalyzedRepo: React.FC = () => {
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased text-left relative">
 
-            {/* HEADER */}
+            {/* HEADER - Κρατάμε τα μεγάλα μεγέθη */}
             <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-6">
                     <button onClick={() => navigate('/dashboard')} className="p-3 bg-slate-100 rounded-full hover:bg-bram-primary-soft transition-all">
@@ -194,7 +193,7 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* TERMINALS */}
+            {/* TERMINALS - Κρατάμε τα μεγάλα μεγέθη */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
@@ -217,10 +216,10 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* CONTROL PANEL */}
+            {/* CONTROL PANEL - Κρατάμε τα μεγάλα μεγέθη */}
             <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
                 <div className="flex-1 flex gap-10">
-                    {serviceList.map((svc) => (
+                    {serviceStatuses.map((svc) => (
                         <div key={svc.name} className="flex items-center gap-3">
                             {getMiniStatusIcon(svc.status)}
                             <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{svc.name}</span>
@@ -249,7 +248,9 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* MODAL (PRO ARCHITECTURE REVIEW) */}
+            {/* ========================================= */}
+            {/* PRO MODAL - Maximize code visibility      */}
+            {/* ========================================= */}
             {isReviewOpen && selectedFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 lg:p-6 overflow-hidden">
                     <div className="bg-[#0f172a] border border-white/10 w-full max-w-[98vw] h-full max-h-[96vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-300">
