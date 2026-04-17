@@ -4,6 +4,7 @@ import api from '../api/axiosInstance';
 import { Loader2, ArrowLeft, Database, Terminal, CheckCircle2, Download, AlertCircle, Play, X } from 'lucide-react';
 import { DiffEditor } from "@monaco-editor/react";
 
+// --- INTERFACES ---
 interface AnalysisJob {
     jobId: string;
     repoName: string;
@@ -22,6 +23,13 @@ interface AnalysisJob {
     blueprintJson: unknown | null;
 }
 
+interface DiffFile {
+    filename: string;
+    language: string;
+    draftContent: string;
+    validatedContent: string;
+}
+
 const AnalyzedRepo: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
     const navigate = useNavigate();
@@ -30,15 +38,14 @@ const AnalyzedRepo: React.FC = () => {
 
     // --- STATES ΓΙΑ ΤΟ DIFF REVIEW MODAL ---
     const [isReviewOpen, setIsReviewOpen] = useState(false);
-    const [diffData, setDiffData] = useState<any[]>([]);
+    const [diffData, setDiffData] = useState<DiffFile[]>([]);
     const [isFetchingDiff, setIsFetchingDiff] = useState(false);
     const [selectedFileIndex, setSelectedFileIndex] = useState(0);
     const [isDeploying, setIsDeploying] = useState(false);
 
-    // Χρησιμοποιούμε ένα ref για να ξέρουμε πότε να σταματήσουμε το polling
     const stopPolling = useRef(false);
 
-    // 1. Ρωμαλέο Polling
+    // 1. Polling για την κατάσταση του Job
     useEffect(() => {
         const fetchJobStatus = async () => {
             if (stopPolling.current) return;
@@ -47,7 +54,6 @@ const AnalyzedRepo: React.FC = () => {
                 const response = await api.get(`/dashboard/jobs/${jobId}`);
                 setJob(response.data);
 
-                // Αν φτάσαμε σε τελικό status, σταματάμε τα requests
                 const currentStatus = response.data.status;
                 if (['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'].includes(currentStatus)) {
                     stopPolling.current = true;
@@ -91,13 +97,13 @@ const AnalyzedRepo: React.FC = () => {
         }
     };
 
-    // 3. Άνοιγμα του Review Modal (Fetch Diff Data)
+    // 3. Φόρτωση δεδομένων για το Diff Review
     const handleOpenReview = async () => {
         setIsFetchingDiff(true);
         try {
             const response = await api.get(`/analysis/${jobId}/review`);
             setDiffData(response.data.files);
-            setSelectedFileIndex(0); // Reset στο πρώτο tab
+            setSelectedFileIndex(0);
             setIsReviewOpen(true);
         } catch (error) {
             console.error("Failed to fetch diff data:", error);
@@ -107,12 +113,11 @@ const AnalyzedRepo: React.FC = () => {
         }
     };
 
-    // 4. Execution / Deployment Simulation
+    // 4. Προσομοίωση Deployment
     const handleExecuteDeployment = async () => {
         setIsDeploying(true);
         console.log("Triggering deployment for job:", jobId);
 
-        // Προσομοίωση καθυστέρησης (εδώ αργότερα θα κάνεις το POST request στο Execution Service)
         setTimeout(() => {
             alert("🚀 Deployment Process Started! (Simulation)");
             setIsDeploying(false);
@@ -240,19 +245,18 @@ const AnalyzedRepo: React.FC = () => {
             </div>
 
             {/* ========================================= */}
-            {/* INLINE MODAL (Χωρίς εξωτερικά Components) */}
+            {/* INLINE MODAL (Diff Review Window)        */}
             {/* ========================================= */}
             {isReviewOpen && diffData.length > 0 && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 lg:p-8">
-                    {/* Modal Window */}
-                    <div className="bg-slate-900 border border-slate-700 w-full max-w-6xl h-full max-h-[85vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-slate-900 border border-slate-700 w-full max-w-6xl h-full max-h-[85vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl">
 
-                        {/* Header */}
+                        {/* Modal Header */}
                         <div className="p-6 border-b border-slate-800 flex justify-between items-start">
                             <div>
-                                <h2 className="text-2xl font-black text-green-400">Review Architecture Changes</h2>
-                                <p className="text-slate-400 text-sm mt-1">
-                                    Compare the original AI Draft (Left) with the Architect-Validated version (Right).
+                                <h2 className="text-2xl font-black text-green-400 uppercase tracking-tighter">Architecture Review</h2>
+                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
+                                    Draft (Left) vs Validated (Right)
                                 </p>
                             </div>
                             <button
@@ -263,18 +267,17 @@ const AnalyzedRepo: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Body (Tabs & Monaco Editor) */}
+                        {/* Modal Body */}
                         <div className="flex-1 flex flex-col p-6 min-h-0 bg-slate-900">
-
-                            {/* Tabs Button Group */}
+                            {/* File Selector Tabs */}
                             <div className="flex gap-2 mb-4">
                                 {diffData.map((file, index) => (
                                     <button
                                         key={file.filename}
                                         onClick={() => setSelectedFileIndex(index)}
-                                        className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                                        className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
                                             selectedFileIndex === index
-                                                ? 'bg-blue-600 text-white shadow-lg'
+                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
                                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
                                         }`}
                                     >
@@ -283,39 +286,41 @@ const AnalyzedRepo: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Monaco Editor Container */}
-                            <div className="flex-1 border border-slate-700 rounded-xl overflow-hidden bg-slate-950">
+                            {/* Monaco Editor Diff View */}
+                            <div className="flex-1 border border-slate-700 rounded-2xl overflow-hidden bg-slate-950">
                                 <DiffEditor
-                                    original={diffData[selectedFileIndex]?.draftContent}
-                                    modified={diffData[selectedFileIndex]?.validatedContent}
-                                    language={diffData[selectedFileIndex]?.language}
+                                    original={diffData[selectedFileIndex].draftContent}
+                                    modified={diffData[selectedFileIndex].validatedContent}
+                                    language={diffData[selectedFileIndex].language}
                                     theme="vs-dark"
                                     options={{
                                         readOnly: true,
                                         renderSideBySide: true,
                                         minimap: { enabled: false },
-                                        wordWrap: "on"
+                                        wordWrap: "on",
+                                        scrollBeyondLastLine: false,
+                                        fontSize: 12,
                                     }}
                                 />
                             </div>
                         </div>
 
-                        {/* Footer (Action Buttons) */}
+                        {/* Modal Footer */}
                         <div className="p-6 border-t border-slate-800 flex justify-end gap-4 bg-slate-900/50">
                             <button
                                 onClick={() => setIsReviewOpen(false)}
                                 disabled={isDeploying}
-                                className="px-6 py-3 rounded-xl font-bold text-sm border border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-50"
+                                className="px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleExecuteDeployment}
                                 disabled={isDeploying}
-                                className="px-8 py-3 rounded-xl font-bold text-sm bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                                className="px-10 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2"
                             >
                                 {isDeploying ? <Loader2 className="animate-spin" size={18} /> : null}
-                                {isDeploying ? "Deploying Infrastructure..." : "Approve & Execute Deploy"}
+                                {isDeploying ? "Deploying..." : "Approve & Execute Deploy"}
                             </button>
                         </div>
                     </div>
