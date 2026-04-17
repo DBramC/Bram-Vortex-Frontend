@@ -5,7 +5,7 @@ import {
     Loader2, ArrowLeft, Database, Terminal,
     CheckCircle2, Download, AlertCircle, Play, X,
     Layers, Settings, GitBranch, FileCode
-} from 'lucide-react';
+} from 'lucide-react'; // 👈 ΔΙΟΡΘΩΘΗΚΕ ΕΔΩ
 import { DiffEditor } from "@monaco-editor/react";
 
 // --- INTERFACES ---
@@ -60,7 +60,6 @@ const AnalyzedRepo: React.FC = () => {
                 if (['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'].includes(response.data.status)) {
                     stopPolling.current = true;
                 }
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 console.warn("⏳ Job not found yet, retrying...");
             }
@@ -73,7 +72,6 @@ const AnalyzedRepo: React.FC = () => {
         };
     }, [jobId]);
 
-    // Φιλτράρισμα και ομαδοποίηση αρχείων για την Sidebar
     const categories = useMemo(() => {
         const groups: Record<string, DiffFile[]> = {
             'INFRASTRUCTURE': diffData.filter(f => f.filename.includes('INFRASTRUCTURE')),
@@ -85,7 +83,6 @@ const AnalyzedRepo: React.FC = () => {
                 (!f.filename.includes('INFRASTRUCTURE') && !f.filename.includes('CONFIGURATION'))
             )
         };
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         return Object.fromEntries(Object.entries(groups).filter(([_, files]) => files.length > 0));
     }, [diffData]);
 
@@ -100,7 +97,6 @@ const AnalyzedRepo: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Download failed."); } finally { setIsDownloading(false); }
     };
 
@@ -115,7 +111,6 @@ const AnalyzedRepo: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Failed to generate comparison."); } finally { setIsDownloadingComparison(false); }
     };
 
@@ -131,7 +126,6 @@ const AnalyzedRepo: React.FC = () => {
                     setIsReviewOpen(true);
                 }
             }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Review failed to load."); } finally { setIsFetchingDiff(false); }
     };
 
@@ -159,7 +153,6 @@ const AnalyzedRepo: React.FC = () => {
         </div>
     );
 
-    // --- ESLINT FIX: Explicit mapping instead of (job as any) ---
     const serviceStatuses = [
         { name: 'Terraform', status: job.terraformStatus || job.terraform_status },
         { name: 'Ansible', status: job.ansibleStatus || job.ansible_status },
@@ -170,55 +163,55 @@ const AnalyzedRepo: React.FC = () => {
     const isReadyForExecution = job.status === 'READY_FOR_EXECUTION' || job.status === 'COMPLETED';
 
     return (
-        <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased text-left relative">
+        <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-10 font-sans antialiased text-left relative">
 
-            {/* HEADER - Κρατάμε τα μεγάλα μεγέθη */}
-            <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-6">
-                    <button onClick={() => navigate('/dashboard')} className="p-3 bg-slate-100 rounded-full hover:bg-bram-primary-soft transition-all">
-                        <ArrowLeft size={22} />
+            {/* HEADER - RESTORED TO p-8 */}
+            <div className="w-full max-w-7xl mx-auto mb-10 bg-white p-8 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-8">
+                    <button onClick={() => navigate('/dashboard')} className="p-4 bg-slate-100 rounded-full hover:bg-bram-primary-soft transition-all">
+                        <ArrowLeft size={24} />
                     </button>
                     <div>
                         <h1 className="text-3xl font-black text-bram-text-main tracking-tighter">
                             Analyze: <span className="text-bram-primary">{job.repoName}</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-[10px] uppercase tracking-[0.2em]">
+                        <p className="text-bram-text-muted font-black text-[10px] uppercase tracking-[0.2em] mt-1">
                             {job.targetCloud} • {job.computeType}
                         </p>
                     </div>
                 </div>
-                <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest
+                <div className={`px-10 py-3 rounded-full font-black text-xs border-2 uppercase tracking-widest
                     ${isReadyForExecution ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
                     {job.status.replace(/_/g, ' ')}
                 </div>
             </div>
 
-            {/* TERMINALS - Κρατάμε τα μεγάλα μεγέθη */}
-            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
+            {/* TERMINALS - RESTORED TO p-8 & gap-8 */}
+            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 min-h-0">
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
-                    <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
-                        <Terminal size={16} className="text-terminal-prompt" />
+                    <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
+                        <Terminal size={18} className="text-terminal-prompt" />
                         <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Analysis_Logs</span>
                     </div>
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-prompt scrollbar-hide">
-                        <pre className="whitespace-pre-wrap">{job.promptMessage || "> AI Analysis logs will appear here..."}</pre>
+                    <div className="p-8 overflow-auto flex-1 font-mono text-sm text-terminal-prompt scrollbar-hide">
+                        <pre className="whitespace-pre-wrap">{job.promptMessage || "> AI Analysis logs..."}</pre>
                     </div>
                 </div>
 
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
-                    <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
-                        <Database size={16} className="text-terminal-blueprint" />
+                    <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
+                        <Database size={18} className="text-terminal-blueprint" />
                         <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Blueprint.json</span>
                     </div>
-                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint scrollbar-hide">
-                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Spec JSON will appear here..."}</pre>
+                    <div className="p-8 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint scrollbar-hide">
+                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Spec JSON..."}</pre>
                     </div>
                 </div>
             </div>
 
-            {/* CONTROL PANEL - Κρατάμε τα μεγάλα μεγέθη */}
-            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-1 flex gap-10">
+            {/* CONTROL PANEL - RESTORED TO p-8 */}
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-8 shadow-xl flex flex-col md:flex-row items-center gap-10">
+                <div className="flex-1 flex gap-12">
                     {serviceStatuses.map((svc) => (
                         <div key={svc.name} className="flex items-center gap-3">
                             {getMiniStatusIcon(svc.status)}
@@ -231,26 +224,24 @@ const AnalyzedRepo: React.FC = () => {
                     <button
                         onClick={handleDownloadMaster}
                         disabled={!isReadyForExecution || isDownloading}
-                        className="flex items-center gap-3 px-6 py-4 rounded-3xl font-black text-xs uppercase bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-50 transition-all shadow-lg"
+                        className="flex items-center gap-4 px-8 py-4 rounded-3xl font-black text-xs uppercase bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-50 transition-all shadow-lg"
                     >
-                        {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                        {isDownloading ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
                         Package
                     </button>
 
                     <button
                         onClick={handleOpenReview}
                         disabled={!isReadyForExecution || isFetchingDiff}
-                        className="flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase bg-bram-primary text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200"
+                        className="flex items-center gap-4 px-10 py-4 rounded-3xl font-black text-xs uppercase bg-bram-primary text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200"
                     >
-                        {isFetchingDiff ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
+                        {isFetchingDiff ? <Loader2 className="animate-spin" size={20} /> : <Play size={20} />}
                         Review & Deploy
                     </button>
                 </div>
             </div>
 
-            {/* ========================================= */}
-            {/* PRO MODAL - Maximize code visibility      */}
-            {/* ========================================= */}
+            {/* MODAL - Maximized Diff View */}
             {isReviewOpen && selectedFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 lg:p-6 overflow-hidden">
                     <div className="bg-[#0f172a] border border-white/10 w-full max-w-[98vw] h-full max-h-[96vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-300">
@@ -299,7 +290,7 @@ const AnalyzedRepo: React.FC = () => {
                                                             <FileCode size={12} className={isSelected ? 'text-blue-200' : 'text-slate-700'} />
                                                             <span className="text-[10px] font-bold truncate uppercase tracking-tight">{cleanName}</span>
                                                         </div>
-                                                        {isChanged && <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelected ? 'bg-white shadow-white' : 'bg-emerald-500 shadow-emerald-500'}`} />}
+                                                        {isChanged && <div className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-sm ${isSelected ? 'bg-white shadow-white' : 'bg-emerald-500 shadow-emerald-500'}`} />}
                                                     </button>
                                                 );
                                             })}
