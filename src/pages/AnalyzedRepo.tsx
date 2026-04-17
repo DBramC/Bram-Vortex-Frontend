@@ -24,7 +24,7 @@ interface AnalysisJob {
     validatorStatus?: string;
     validator_status?: string;
     promptMessage: string | null;
-    blueprintJson: unknown | null;
+    blueprintJson: Record<string, unknown> | null;
 }
 
 interface DiffFile {
@@ -41,7 +41,6 @@ const AnalyzedRepo: React.FC = () => {
     const [job, setJob] = useState<AnalysisJob | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    // --- STATES ΓΙΑ ΤΟ DIFF REVIEW MODAL ---
     const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [diffData, setDiffData] = useState<DiffFile[]>([]);
     const [isFetchingDiff, setIsFetchingDiff] = useState(false);
@@ -52,7 +51,6 @@ const AnalyzedRepo: React.FC = () => {
 
     const stopPolling = useRef(false);
 
-    // 1. Polling για την κατάσταση του Job
     useEffect(() => {
         const fetchJobStatus = async () => {
             if (stopPolling.current) return;
@@ -62,11 +60,11 @@ const AnalyzedRepo: React.FC = () => {
                 if (['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'].includes(response.data.status)) {
                     stopPolling.current = true;
                 }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 console.warn("⏳ Job not found yet, retrying...");
             }
         };
-
         fetchJobStatus();
         const intervalId = setInterval(fetchJobStatus, 3000);
         return () => {
@@ -75,7 +73,6 @@ const AnalyzedRepo: React.FC = () => {
         };
     }, [jobId]);
 
-    // 2. ΕΞΥΠΝΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΝΑ ΚΑΤΗΓΟΡΙΑ (Fixed Pipeline detection)
     const categories = useMemo(() => {
         const groups: Record<string, DiffFile[]> = {
             'INFRASTRUCTURE': diffData.filter(f => f.filename.includes('INFRASTRUCTURE')),
@@ -87,10 +84,10 @@ const AnalyzedRepo: React.FC = () => {
                 (!f.filename.includes('INFRASTRUCTURE') && !f.filename.includes('CONFIGURATION'))
             )
         };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         return Object.fromEntries(Object.entries(groups).filter(([_, files]) => files.length > 0));
     }, [diffData]);
 
-    // 3. Download Handlers
     const handleDownloadMaster = async () => {
         setIsDownloading(true);
         try {
@@ -102,6 +99,7 @@ const AnalyzedRepo: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Download failed."); } finally { setIsDownloading(false); }
     };
 
@@ -116,10 +114,10 @@ const AnalyzedRepo: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Failed to generate comparison."); } finally { setIsDownloadingComparison(false); }
     };
 
-    // 4. Modal Activation
     const handleOpenReview = async () => {
         setIsFetchingDiff(true);
         try {
@@ -134,6 +132,7 @@ const AnalyzedRepo: React.FC = () => {
                 }
                 setIsReviewOpen(true);
             }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Review failed to load."); } finally { setIsFetchingDiff(false); }
     };
 
@@ -161,95 +160,100 @@ const AnalyzedRepo: React.FC = () => {
         </div>
     );
 
+    // --- ΤΩΡΑ ΕΔΩ ΟΡΙΖΟΥΜΕ ΤΑ SERVICES ΧΩΡΙΣ ANY ---
+    const serviceList = [
+        { name: 'Terraform', status: job.terraformStatus || job.terraform_status },
+        { name: 'Ansible', status: job.ansibleStatus || job.ansible_status },
+        { name: 'Pipeline', status: job.pipelineStatus || job.pipeline_status },
+        { name: 'Validator', status: job.validatorStatus || job.validator_status },
+    ];
+
     const isReadyForExecution = job.status === 'READY_FOR_EXECUTION' || job.status === 'COMPLETED';
 
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased text-left relative">
 
             {/* HEADER */}
-            <div className="w-full max-w-7xl mx-auto mb-6 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-6">
                     <button onClick={() => navigate('/dashboard')} className="p-3 bg-slate-100 rounded-full hover:bg-bram-primary-soft transition-all">
                         <ArrowLeft size={22} />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black text-bram-text-main tracking-tighter">
+                        <h1 className="text-3xl font-black text-bram-text-main tracking-tighter">
                             Analyze: <span className="text-bram-primary">{job.repoName}</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-[9px] uppercase tracking-[0.2em]">
+                        <p className="text-bram-text-muted font-black text-[10px] uppercase tracking-[0.2em]">
                             {job.targetCloud} • {job.computeType}
                         </p>
                     </div>
                 </div>
-                <div className={`px-6 py-2 rounded-full font-black text-[10px] border-2 uppercase tracking-widest
+                <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest
                     ${isReadyForExecution ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
                     {job.status.replace(/_/g, ' ')}
                 </div>
             </div>
 
-            {/* MAIN VIEW: TERMINALS */}
-            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 min-h-0">
+            {/* TERMINALS */}
+            <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6 min-h-0">
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
-                        <Terminal size={14} className="text-terminal-prompt" />
-                        <span className="font-black text-[9px] uppercase text-slate-400 tracking-widest">Analysis_Logs</span>
+                        <Terminal size={16} className="text-terminal-prompt" />
+                        <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Analysis_Logs</span>
                     </div>
-                    <div className="p-6 overflow-auto flex-1 font-mono text-xs text-terminal-prompt scrollbar-hide">
+                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-prompt scrollbar-hide">
                         <pre className="whitespace-pre-wrap">{job.promptMessage || "> AI Analysis logs will appear here..."}</pre>
                     </div>
                 </div>
 
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-6 py-3 border-b border-white/5 flex items-center gap-3">
-                        <Database size={14} className="text-terminal-blueprint" />
-                        <span className="font-black text-[9px] uppercase text-slate-400 tracking-widest">Blueprint.json</span>
+                        <Database size={16} className="text-terminal-blueprint" />
+                        <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Blueprint.json</span>
                     </div>
-                    <div className="p-6 overflow-auto flex-1 font-mono text-xs text-terminal-blueprint scrollbar-hide">
+                    <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint scrollbar-hide">
                         <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Spec JSON will appear here..."}</pre>
                     </div>
                 </div>
             </div>
 
-            {/* FOOTER: CONTROL PANEL */}
-            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-5 shadow-xl flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-1 flex gap-8">
-                    {['Terraform', 'Ansible', 'Pipeline', 'Validator'].map((svc) => (
-                        <div key={svc} className="flex items-center gap-2.5">
-                            {getMiniStatusIcon((job as any)[`${svc.toLowerCase()}Status`] || (job as any)[`${svc.toLowerCase()}_status`])}
-                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{svc}</span>
+            {/* CONTROL PANEL */}
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
+                <div className="flex-1 flex gap-10">
+                    {serviceList.map((svc) => (
+                        <div key={svc.name} className="flex items-center gap-3">
+                            {getMiniStatusIcon(svc.status)}
+                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{svc.name}</span>
                         </div>
                     ))}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                     <button
                         onClick={handleDownloadMaster}
                         disabled={!isReadyForExecution || isDownloading}
-                        className="flex items-center gap-2.5 px-6 py-3 rounded-2xl font-black text-[10px] uppercase bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-50 transition-all shadow-md"
+                        className="flex items-center gap-3 px-6 py-4 rounded-3xl font-black text-xs uppercase bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-50 transition-all shadow-lg"
                     >
-                        {isDownloading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                        {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
                         Package
                     </button>
 
                     <button
                         onClick={handleOpenReview}
                         disabled={!isReadyForExecution || isFetchingDiff}
-                        className="flex items-center gap-2.5 px-8 py-3 rounded-2xl font-black text-[10px] uppercase bg-bram-primary text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg"
+                        className="flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase bg-bram-primary text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200"
                     >
-                        {isFetchingDiff ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}
+                        {isFetchingDiff ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
                         Review & Deploy
                     </button>
                 </div>
             </div>
 
-            {/* ========================================= */}
-            {/* PRO MODAL (EXPANDED DIFF REVIEW)          */}
-            {/* ========================================= */}
+            {/* MODAL (PRO ARCHITECTURE REVIEW) */}
             {isReviewOpen && selectedFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 lg:p-6 overflow-hidden">
                     <div className="bg-[#0f172a] border border-white/10 w-full max-w-[98vw] h-full max-h-[96vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-300">
 
-                        {/* Modal Header - SLIMMED */}
                         <div className="px-10 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
                             <div className="flex items-center gap-5">
                                 <div className="p-3 bg-emerald-500/20 rounded-2xl border border-emerald-500/20 shadow-inner">
@@ -268,10 +272,7 @@ const AnalyzedRepo: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Modal Body - MAXIMIZED AREA */}
                         <div className="flex-1 flex min-h-0">
-
-                            {/* Left Sidebar - SLIMMED */}
                             <div className="w-64 border-r border-white/5 bg-black/20 flex flex-col p-6 overflow-y-auto scrollbar-hide">
                                 {Object.entries(categories).map(([catName, files]) => (
                                     <div key={catName} className="mb-8">
@@ -286,7 +287,6 @@ const AnalyzedRepo: React.FC = () => {
                                                 const isChanged = file.draftContent.trim() !== file.validatedContent.trim();
                                                 const isSelected = selectedFile.filename === file.filename;
                                                 const cleanName = file.filename.split(': ')[1];
-
                                                 return (
                                                     <button
                                                         key={file.filename}
@@ -298,11 +298,7 @@ const AnalyzedRepo: React.FC = () => {
                                                             <FileCode size={12} className={isSelected ? 'text-blue-200' : 'text-slate-700'} />
                                                             <span className="text-[10px] font-bold truncate uppercase tracking-tight">{cleanName}</span>
                                                         </div>
-                                                        {isChanged && (
-                                                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px] 
-                                                                ${isSelected ? 'bg-white shadow-white' : 'bg-emerald-500 shadow-emerald-500'}`}
-                                                            />
-                                                        )}
+                                                        {isChanged && <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelected ? 'bg-white shadow-white' : 'bg-emerald-500 shadow-emerald-500'}`} />}
                                                     </button>
                                                 );
                                             })}
@@ -311,7 +307,6 @@ const AnalyzedRepo: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Main Editor View - MAXIMIZED */}
                             <div className="flex-1 flex flex-col p-6 bg-[#0f172a]">
                                 <div className="mb-4 flex justify-between items-end">
                                     <div>
@@ -323,7 +318,6 @@ const AnalyzedRepo: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Monaco Editor - Redesigned Frame */}
                                 <div className="flex-1 border border-white/5 rounded-[2rem] overflow-hidden bg-[#050505] shadow-2xl shadow-black p-4">
                                     <DiffEditor
                                         key={selectedFile.filename}
@@ -351,7 +345,6 @@ const AnalyzedRepo: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Modal Footer - SLIMMED */}
                         <div className="px-10 py-6 border-t border-white/5 bg-white/5 flex justify-between items-center">
                             <button
                                 onClick={handleDownloadComparison}
