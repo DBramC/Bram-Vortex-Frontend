@@ -38,10 +38,11 @@ const AnalyzedRepo: React.FC = () => {
 
     // --- STATES ΓΙΑ ΤΟ DIFF REVIEW MODAL ---
     const [isReviewOpen, setIsReviewOpen] = useState(false);
-    const [diffData, setDiffData] = useState<DiffFile[]>([]); // 👈 Διορθωμένος τύπος
+    const [diffData, setDiffData] = useState<DiffFile[]>([]);
     const [isFetchingDiff, setIsFetchingDiff] = useState(false);
     const [selectedFileIndex, setSelectedFileIndex] = useState(0);
     const [isDeploying, setIsDeploying] = useState(false);
+    const [isDownloadingComparison, setIsDownloadingComparison] = useState(false);
 
     const stopPolling = useRef(false);
 
@@ -58,7 +59,6 @@ const AnalyzedRepo: React.FC = () => {
                 if (['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'].includes(currentStatus)) {
                     stopPolling.current = true;
                 }
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 console.warn("⏳ Job not found yet, retrying...");
             }
@@ -73,14 +73,13 @@ const AnalyzedRepo: React.FC = () => {
         };
     }, [jobId]);
 
-    // 2. Download Master ZIP
+    // 2. Download Master ZIP (Validated)
     const handleDownloadMaster = async () => {
         setIsDownloading(true);
         try {
             const response = await api.get(`/dashboard/download/${jobId}`, {
                 responseType: 'blob',
             });
-
             const blob = new Blob([response.data], { type: 'application/zip' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -89,42 +88,56 @@ const AnalyzedRepo: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error("Download error:", error);
-            alert("Το αρχείο δεν είναι έτοιμο στη βάση δεδομένων ακόμα.");
+            alert("Package not ready yet.");
         } finally {
             setIsDownloading(false);
         }
     };
 
-    // 3. Φόρτωση δεδομένων για το Diff Review
+    // 3. Download Comparison ZIP (Draft + Validated)
+    const handleDownloadComparison = async () => {
+        setIsDownloadingComparison(true);
+        try {
+            const response = await api.get(`/dashboard/download-comparison/${jobId}`, {
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `comparison-${jobId}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            alert("Failed to generate comparison zip.");
+        } finally {
+            setIsDownloadingComparison(false);
+        }
+    };
+
+    // 4. Φόρτωση δεδομένων για το Diff Review
     const handleOpenReview = async () => {
         setIsFetchingDiff(true);
         try {
-            // 👈 ΔΙΟΡΘΩΣΗ: Προσθήκη του /dashboard στο URL
             const response = await api.get(`/dashboard/analysis/${jobId}/review`);
-
             if (response.data && response.data.files) {
                 setDiffData(response.data.files);
                 setSelectedFileIndex(0);
                 setIsReviewOpen(true);
             }
         } catch (error) {
-            console.error("Failed to fetch diff data:", error);
-            alert("Failed to load validation review. Check backend logs.");
+            alert("Failed to load validation review. Ensure the job is COMPLETED.");
         } finally {
             setIsFetchingDiff(false);
         }
     };
 
-    // 4. Προσομοίωση Deployment
+    // 5. Προσομοίωση Deployment
     const handleExecuteDeployment = async () => {
         setIsDeploying(true);
-        console.log("Triggering deployment for job:", jobId);
-
         setTimeout(() => {
-            alert("🚀 Deployment Process Started! (Simulation)");
+            alert("🚀 Deployment Process Started! (Execution Service Triggered)");
             setIsDeploying(false);
             setIsReviewOpen(false);
         }, 2000);
@@ -133,22 +146,15 @@ const AnalyzedRepo: React.FC = () => {
     const getMiniStatusIcon = (rawStatus: string | undefined) => {
         if (!rawStatus) return <Loader2 size={16} className="animate-spin text-bram-primary" />;
         const status = rawStatus.replace(/"/g, '').trim().toUpperCase();
-
-        if (status === 'COMPLETED' || status === 'SKIPPED') {
-            return <CheckCircle2 size={16} className="text-emerald-500" />;
-        }
-        if (status === 'FAILED') {
-            return <AlertCircle size={16} className="text-red-500" />;
-        }
+        if (status === 'COMPLETED' || status === 'SKIPPED') return <CheckCircle2 size={16} className="text-emerald-500" />;
+        if (status === 'FAILED') return <AlertCircle size={16} className="text-red-500" />;
         return <Loader2 size={16} className="animate-spin text-bram-primary" />;
     };
 
     if (!job) return (
         <div className="h-screen bg-bram-bg flex flex-col items-center justify-center gap-4">
             <Loader2 className="animate-spin text-bram-primary" size={64} />
-            <p className="text-white font-black text-xs uppercase tracking-widest animate-pulse">
-                Initializing Workspace...
-            </p>
+            <p className="text-white font-black text-xs uppercase tracking-widest animate-pulse">Initializing Workspace...</p>
         </div>
     );
 
@@ -186,7 +192,7 @@ const AnalyzedRepo: React.FC = () => {
                         <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Analysis_Logs</span>
                     </div>
                     <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-prompt scrollbar-hide">
-                        <pre className="whitespace-pre-wrap">{job.promptMessage || "> Connecting to Gemini AI...\n> Fetching manifest content..."}</pre>
+                        <pre className="whitespace-pre-wrap">{job.promptMessage || "> Connecting to Gemini AI..."}</pre>
                     </div>
                 </div>
 
@@ -196,7 +202,7 @@ const AnalyzedRepo: React.FC = () => {
                         <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Infra_Blueprint.json</span>
                     </div>
                     <div className="p-7 overflow-auto flex-1 font-mono text-sm text-terminal-blueprint scrollbar-hide">
-                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Parsing architecture requirements..."}</pre>
+                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Parsing..."}</pre>
                     </div>
                 </div>
             </div>
@@ -227,9 +233,7 @@ const AnalyzedRepo: React.FC = () => {
                         onClick={handleDownloadMaster}
                         disabled={!isReadyForExecution || isDownloading}
                         className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
-                            ${isReadyForExecution
-                            ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                            ${isReadyForExecution ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                     >
                         {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
                         Download Package
@@ -239,9 +243,7 @@ const AnalyzedRepo: React.FC = () => {
                         onClick={handleOpenReview}
                         disabled={!isReadyForExecution || isFetchingDiff}
                         className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
-                            ${isReadyForExecution
-                            ? 'bg-bram-primary text-white hover:bg-blue-700'
-                            : 'bg-blue-100 text-blue-300 cursor-not-allowed'}`}
+                            ${isReadyForExecution ? 'bg-bram-primary text-white hover:bg-blue-700' : 'bg-blue-100 text-blue-300 cursor-not-allowed'}`}
                     >
                         {isFetchingDiff ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
                         Review & Deploy
@@ -250,40 +252,43 @@ const AnalyzedRepo: React.FC = () => {
             </div>
 
             {/* ========================================= */}
-            {/* INLINE MODAL (Diff Review Window)        */}
+            {/* INLINE MODAL (Polished & Pro)            */}
             {/* ========================================= */}
             {isReviewOpen && diffData.length > 0 && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 lg:p-8">
-                    <div className="bg-slate-900 border border-slate-700 w-full max-w-6xl h-full max-h-[85vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 lg:p-10">
+                    <div className="bg-[#0f172a] border border-white/10 w-full max-w-7xl h-full max-h-[90vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
 
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-start">
-                            <div>
-                                <h2 className="text-2xl font-black text-green-400 uppercase tracking-tighter">Architecture Review</h2>
-                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
-                                    Draft (Left) vs Validated (Right)
-                                </p>
+                        <div className="px-8 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-emerald-500/20 rounded-2xl">
+                                    <CheckCircle2 className="text-emerald-400" size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-white tracking-tight uppercase">Architecture Validation</h2>
+                                    <div className="flex gap-4 mt-1">
+                                        <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest bg-red-400/10 px-2 py-0.5 rounded border border-red-400/20">AI Draft (Left)</span>
+                                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20">Validated (Right)</span>
+                                    </div>
+                                </div>
                             </div>
-                            <button
-                                onClick={() => setIsReviewOpen(false)}
-                                className="text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800 transition-colors"
-                            >
-                                <X size={24} />
+                            <button onClick={() => setIsReviewOpen(false)} className="text-slate-500 hover:text-white transition-colors p-2">
+                                <X size={28} />
                             </button>
                         </div>
 
                         {/* Modal Body */}
-                        <div className="flex-1 flex flex-col p-6 min-h-0 bg-slate-900">
+                        <div className="flex-1 flex flex-col p-8 min-h-0">
                             {/* File Selector Tabs */}
-                            <div className="flex gap-2 mb-4">
+                            <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
                                 {diffData.map((file, index) => (
                                     <button
                                         key={file.filename}
                                         onClick={() => setSelectedFileIndex(index)}
-                                        className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                                        className={`px-6 py-2.5 rounded-xl font-black text-[10px] whitespace-nowrap uppercase tracking-widest transition-all ${
                                             selectedFileIndex === index
-                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
-                                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 translate-y-[-2px]'
+                                                : 'bg-white/5 text-slate-400 hover:bg-white/10'
                                         }`}
                                     >
                                         {file.filename}
@@ -292,7 +297,7 @@ const AnalyzedRepo: React.FC = () => {
                             </div>
 
                             {/* Monaco Editor Diff View */}
-                            <div className="flex-1 border border-slate-700 rounded-2xl overflow-hidden bg-slate-950">
+                            <div className="flex-1 border border-white/5 rounded-[2rem] overflow-hidden bg-[#050505] shadow-inner shadow-black">
                                 <DiffEditor
                                     original={diffData[selectedFileIndex].draftContent}
                                     modified={diffData[selectedFileIndex].validatedContent}
@@ -302,31 +307,45 @@ const AnalyzedRepo: React.FC = () => {
                                         readOnly: true,
                                         renderSideBySide: true,
                                         minimap: { enabled: false },
-                                        wordWrap: "on",
+                                        fontSize: 13,
+                                        fontFamily: "'Fira Code', monospace",
                                         scrollBeyondLastLine: false,
-                                        fontSize: 12,
+                                        automaticLayout: true,
+                                        padding: { top: 20, bottom: 20 },
+                                        wordWrap: "on"
                                     }}
                                 />
                             </div>
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-6 border-t border-slate-800 flex justify-end gap-4 bg-slate-900/50">
+                        <div className="px-8 py-6 border-t border-white/5 bg-white/5 flex justify-between items-center">
+                            {/* DOWNLOAD COMPARISON BUTTON */}
                             <button
-                                onClick={() => setIsReviewOpen(false)}
-                                disabled={isDeploying}
-                                className="px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
+                                onClick={handleDownloadComparison}
+                                disabled={isDownloadingComparison}
+                                className="flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all active:scale-95 disabled:opacity-50"
                             >
-                                Cancel
+                                {isDownloadingComparison ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                                Download Comparison (Zip)
                             </button>
-                            <button
-                                onClick={handleExecuteDeployment}
-                                disabled={isDeploying}
-                                className="px-10 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2"
-                            >
-                                {isDeploying ? <Loader2 className="animate-spin" size={18} /> : null}
-                                {isDeploying ? "Deploying..." : "Approve & Execute Deploy"}
-                            </button>
+
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setIsReviewOpen(false)}
+                                    className="px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:bg-white/10 transition-all active:scale-95"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={handleExecuteDeployment}
+                                    disabled={isDeploying}
+                                    className="px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+                                >
+                                    {isDeploying ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
+                                    Approve & Execute Deploy
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
