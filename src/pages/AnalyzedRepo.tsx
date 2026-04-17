@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import { Loader2, ArrowLeft, Database, Terminal, CheckCircle2, Download, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Database, Terminal, CheckCircle2, Download, AlertCircle, Play, X } from 'lucide-react';
+import { DiffEditor } from "@monaco-editor/react";
 
 interface AnalysisJob {
     jobId: string;
@@ -15,6 +16,8 @@ interface AnalysisJob {
     ansible_status?: string;
     pipelineStatus?: string;
     pipeline_status?: string;
+    validatorStatus?: string;
+    validator_status?: string;
     promptMessage: string | null;
     blueprintJson: unknown | null;
 }
@@ -25,10 +28,17 @@ const AnalyzedRepo: React.FC = () => {
     const [job, setJob] = useState<AnalysisJob | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
+    // --- STATES ΓΙΑ ΤΟ DIFF REVIEW MODAL ---
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
+    const [diffData, setDiffData] = useState<any[]>([]);
+    const [isFetchingDiff, setIsFetchingDiff] = useState(false);
+    const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+    const [isDeploying, setIsDeploying] = useState(false);
+
     // Χρησιμοποιούμε ένα ref για να ξέρουμε πότε να σταματήσουμε το polling
     const stopPolling = useRef(false);
 
-    // 1. Ρωμαλέο Polling: Αντέχει ακόμα και αν το Job δεν βρεθεί αμέσως (404)
+    // 1. Ρωμαλέο Polling
     useEffect(() => {
         const fetchJobStatus = async () => {
             if (stopPolling.current) return;
@@ -39,28 +49,24 @@ const AnalyzedRepo: React.FC = () => {
 
                 // Αν φτάσαμε σε τελικό status, σταματάμε τα requests
                 const currentStatus = response.data.status;
-                if (['COMPLETED', 'FAILED', 'READY_FOR_CHECK'].includes(currentStatus)) {
+                if (['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'].includes(currentStatus)) {
                     stopPolling.current = true;
                 }
             } catch (error) {
-                // Αν φάμε 404 στην αρχή, απλά περιμένουμε το επόμενο tick του interval
                 console.warn("⏳ Job not found yet, retrying...");
             }
         };
 
-        // Τρέχουμε αμέσως την πρώτη φορά
         fetchJobStatus();
-
-        // Κάθε 3 δευτερόλεπτα
         const intervalId = setInterval(fetchJobStatus, 3000);
 
         return () => {
             clearInterval(intervalId);
             stopPolling.current = true;
         };
-    }, [jobId]); // Μόνο το jobId ως dependency
+    }, [jobId]);
 
-    // 2. Download Master ZIP - Χρήση του σωστού endpoint
+    // 2. Download Master ZIP
     const handleDownloadMaster = async () => {
         setIsDownloading(true);
         try {
@@ -85,6 +91,35 @@ const AnalyzedRepo: React.FC = () => {
         }
     };
 
+    // 3. Άνοιγμα του Review Modal (Fetch Diff Data)
+    const handleOpenReview = async () => {
+        setIsFetchingDiff(true);
+        try {
+            const response = await api.get(`/analysis/${jobId}/review`);
+            setDiffData(response.data.files);
+            setSelectedFileIndex(0); // Reset στο πρώτο tab
+            setIsReviewOpen(true);
+        } catch (error) {
+            console.error("Failed to fetch diff data:", error);
+            alert("Failed to load validation review.");
+        } finally {
+            setIsFetchingDiff(false);
+        }
+    };
+
+    // 4. Execution / Deployment Simulation
+    const handleExecuteDeployment = async () => {
+        setIsDeploying(true);
+        console.log("Triggering deployment for job:", jobId);
+
+        // Προσομοίωση καθυστέρησης (εδώ αργότερα θα κάνεις το POST request στο Execution Service)
+        setTimeout(() => {
+            alert("🚀 Deployment Process Started! (Simulation)");
+            setIsDeploying(false);
+            setIsReviewOpen(false);
+        }, 2000);
+    };
+
     const getMiniStatusIcon = (rawStatus: string | undefined) => {
         if (!rawStatus) return <Loader2 size={16} className="animate-spin text-bram-primary" />;
         const status = rawStatus.replace(/"/g, '').trim().toUpperCase();
@@ -98,7 +133,6 @@ const AnalyzedRepo: React.FC = () => {
         return <Loader2 size={16} className="animate-spin text-bram-primary" />;
     };
 
-    // Εμφάνιση Loader αν το Job είναι ακόμα null
     if (!job) return (
         <div className="h-screen bg-bram-bg flex flex-col items-center justify-center gap-4">
             <Loader2 className="animate-spin text-bram-primary" size={64} />
@@ -108,10 +142,10 @@ const AnalyzedRepo: React.FC = () => {
         </div>
     );
 
-    const canDownload = job.status === 'READY_FOR_CHECK' || job.status === 'COMPLETED';
+    const isReadyForExecution = job.status === 'READY_FOR_EXECUTION' || job.status === 'COMPLETED';
 
     return (
-        <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased text-left">
+        <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-6 lg:p-8 font-sans antialiased text-left relative">
 
             {/* Header */}
             <div className="w-full max-w-7xl mx-auto mb-8 bg-white p-6 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
@@ -129,7 +163,7 @@ const AnalyzedRepo: React.FC = () => {
                     </div>
                 </div>
                 <div className={`px-8 py-2.5 rounded-full font-black text-xs border-2 uppercase tracking-widest
-                    ${canDownload ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
+                    ${isReadyForExecution ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
                     {job.status.replace(/_/g, ' ')}
                 </div>
             </div>
@@ -159,7 +193,6 @@ const AnalyzedRepo: React.FC = () => {
 
             {/* Control Panel */}
             <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-6 shadow-xl flex flex-col md:flex-row items-center gap-8">
-
                 <div className="flex-1 flex gap-10">
                     <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.terraformStatus || job.terraform_status)}
@@ -171,31 +204,123 @@ const AnalyzedRepo: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         {getMiniStatusIcon(job.pipelineStatus || job.pipeline_status)}
-                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">CI/CD Pipeline</span>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">CI/CD</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {getMiniStatusIcon(job.validatorStatus || job.validator_status)}
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Validator</span>
                     </div>
                 </div>
 
                 <div className="flex gap-4">
                     <button
                         onClick={handleDownloadMaster}
-                        disabled={!canDownload || isDownloading}
-                        className={`flex items-center gap-3 px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
-                            ${canDownload
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                        disabled={!isReadyForExecution || isDownloading}
+                        className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
+                            ${isReadyForExecution
+                            ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                     >
                         {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
-                        {job.status === 'COMPLETED' ? "Download Final Package" : "Download Draft Package"}
+                        Download Package
                     </button>
 
-                    {job.status === 'READY_FOR_CHECK' && (
-                        <button className="flex items-center gap-3 px-10 py-4 rounded-3xl font-black text-xs uppercase tracking-tight bg-bram-primary text-white hover:bg-blue-700 transition-all shadow-lg active:scale-95">
-                            <ShieldCheck size={18} />
-                            Verify Architecture
-                        </button>
-                    )}
+                    <button
+                        onClick={handleOpenReview}
+                        disabled={!isReadyForExecution || isFetchingDiff}
+                        className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-tight transition-all shadow-lg active:scale-95
+                            ${isReadyForExecution
+                            ? 'bg-bram-primary text-white hover:bg-blue-700'
+                            : 'bg-blue-100 text-blue-300 cursor-not-allowed'}`}
+                    >
+                        {isFetchingDiff ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
+                        Review & Deploy
+                    </button>
                 </div>
             </div>
+
+            {/* ========================================= */}
+            {/* INLINE MODAL (Χωρίς εξωτερικά Components) */}
+            {/* ========================================= */}
+            {isReviewOpen && diffData.length > 0 && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 lg:p-8">
+                    {/* Modal Window */}
+                    <div className="bg-slate-900 border border-slate-700 w-full max-w-6xl h-full max-h-[85vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+
+                        {/* Header */}
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-start">
+                            <div>
+                                <h2 className="text-2xl font-black text-green-400">Review Architecture Changes</h2>
+                                <p className="text-slate-400 text-sm mt-1">
+                                    Compare the original AI Draft (Left) with the Architect-Validated version (Right).
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsReviewOpen(false)}
+                                className="text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800 transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Body (Tabs & Monaco Editor) */}
+                        <div className="flex-1 flex flex-col p-6 min-h-0 bg-slate-900">
+
+                            {/* Tabs Button Group */}
+                            <div className="flex gap-2 mb-4">
+                                {diffData.map((file, index) => (
+                                    <button
+                                        key={file.filename}
+                                        onClick={() => setSelectedFileIndex(index)}
+                                        className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                                            selectedFileIndex === index
+                                                ? 'bg-blue-600 text-white shadow-lg'
+                                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                                        }`}
+                                    >
+                                        {file.filename}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Monaco Editor Container */}
+                            <div className="flex-1 border border-slate-700 rounded-xl overflow-hidden bg-slate-950">
+                                <DiffEditor
+                                    original={diffData[selectedFileIndex]?.draftContent}
+                                    modified={diffData[selectedFileIndex]?.validatedContent}
+                                    language={diffData[selectedFileIndex]?.language}
+                                    theme="vs-dark"
+                                    options={{
+                                        readOnly: true,
+                                        renderSideBySide: true,
+                                        minimap: { enabled: false },
+                                        wordWrap: "on"
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer (Action Buttons) */}
+                        <div className="p-6 border-t border-slate-800 flex justify-end gap-4 bg-slate-900/50">
+                            <button
+                                onClick={() => setIsReviewOpen(false)}
+                                disabled={isDeploying}
+                                className="px-6 py-3 rounded-xl font-bold text-sm border border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleExecuteDeployment}
+                                disabled={isDeploying}
+                                className="px-8 py-3 rounded-xl font-bold text-sm bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isDeploying ? <Loader2 className="animate-spin" size={18} /> : null}
+                                {isDeploying ? "Deploying Infrastructure..." : "Approve & Execute Deploy"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
