@@ -38,7 +38,7 @@ const AnalyzedRepo: React.FC = () => {
 
     // --- STATES ΓΙΑ ΤΟ DIFF REVIEW MODAL ---
     const [isReviewOpen, setIsReviewOpen] = useState(false);
-    const [diffData, setDiffData] = useState<DiffFile[]>([]);
+    const [diffData, setDiffData] = useState<DiffFile[]>([]); // 👈 Διορθωμένος τύπος
     const [isFetchingDiff, setIsFetchingDiff] = useState(false);
     const [selectedFileIndex, setSelectedFileIndex] = useState(0);
     const [isDeploying, setIsDeploying] = useState(false);
@@ -58,6 +58,7 @@ const AnalyzedRepo: React.FC = () => {
                 if (['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'].includes(currentStatus)) {
                     stopPolling.current = true;
                 }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 console.warn("⏳ Job not found yet, retrying...");
             }
@@ -101,13 +102,17 @@ const AnalyzedRepo: React.FC = () => {
     const handleOpenReview = async () => {
         setIsFetchingDiff(true);
         try {
-            const response = await api.get(`/analysis/${jobId}/review`);
-            setDiffData(response.data.files);
-            setSelectedFileIndex(0);
-            setIsReviewOpen(true);
+            // 👈 ΔΙΟΡΘΩΣΗ: Προσθήκη του /dashboard στο URL
+            const response = await api.get(`/dashboard/analysis/${jobId}/review`);
+
+            if (response.data && response.data.files) {
+                setDiffData(response.data.files);
+                setSelectedFileIndex(0);
+                setIsReviewOpen(true);
+            }
         } catch (error) {
             console.error("Failed to fetch diff data:", error);
-            alert("Failed to load validation review.");
+            alert("Failed to load validation review. Check backend logs.");
         } finally {
             setIsFetchingDiff(false);
         }
