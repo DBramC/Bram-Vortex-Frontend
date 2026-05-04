@@ -19,7 +19,7 @@ interface Repo {
 
 const AwsIcon = () => (
     <svg viewBox="0 0 64 36" width="40" height="24" fill="currentColor">
-        <text x="2" y="24" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="26" fill="currentColor" letterSpacing="-1.5">aws</text>
+        <text x="2" y="24" fontFamily="Arial, Helvetica, sans-serif" fontWeight="800" fontSize="26" fill="currentColor" letterSpacing="0">aws</text>
         <g transform="translate(6, 9) scale(1.3)">
             <path fill="#FF9900" d="M14.07 16.63c-2.31 1.09-5.02 1.48-7.46 1-2.11-.4-3.93-1.4-5.35-2.8-.19-.19-.04-.52.23-.44 3.01.84 6.28.74 9.15-.35 1.26-.48 2.44-1.15 3.5-1.98.23-.19.57.05.43.32-.77.13-1.56 1.44-2.42 2.3-1.15 1.15-2.5 2.11-3.93 2.82-.5.25-1.03.45-1.56.6a.81.81 0 01-1.03-1.01c.15-.54.35-1.05.6-1.55.71-1.44 1.67-2.78 2.82-3.93.86-.86 2.17-1.66 2.3-2.42.27-.14.51.19.32.42-.96 1.15-1.53 2.34-1.92 3.6-.38.82-.53 2.15.38 2.44z"/>
             <path fill="#FF9900" d="M12.58 10.77a1.69 1.69 0 00-.67-.26 1.96 1.96 0 00-.64.13c-.17.07-.29.19-.29.35 0 .19.13.29.36.34l.77.13a2.43 2.43 0 011.57.86 1.92 1.92 0 01.36 1.2 2.13 2.13 0 01-1 1.82 4.12 4.12 0 01-2.33.58 5.62 5.62 0 01-3.1-.89l.63-1.44a4.53 4.53 0 002.4.75c.43 0 .77-.08 1.01-.22a.72.72 0 00.34-.61c0-.22-.1-.36-.29-.44a1.86 1.86 0 00-.52-.17l-.9-.16a2.4 2.4 0 01-1.49-.8 1.92 1.92 0 01-.42-1.2 2.06 2.06 0 01.92-1.73 3.64 3.64 0 012.11-.55 5.46 5.46 0 012.7.69l-.54 1.28z"/>
@@ -27,6 +27,7 @@ const AwsIcon = () => (
     </svg>
 );
 
+// (GcpIcon και AzureIcon παραμένουν ως έχουν...)
 const GcpIcon = () => (
     <svg viewBox="0 0 24 24" width="24" height="24">
         <path fill="#EA4335" d="M12.22 5.2c-2.48 0-4.66 1.34-5.87 3.32l-3.32-2.32A11.96 11.96 0 0112.22 1c3.12 0 5.96 1.18 8.1 3.12l-2.6 2.82c-1.48-1.08-3.32-1.74-5.5-1.74z"/>
@@ -139,22 +140,22 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans p-10 pb-32">
 
-            {/* HEADER AREA - Στυλ Card ομοιόμορφο με τα Repos */}
+            {/* HEADER AREA */}
             <div className="w-full flex flex-col items-center pt-8 px-6">
                 <div className="w-full max-w-5xl bg-white border-2 border-bram-border rounded-[3rem] px-10 py-8 shadow-2xl flex items-center gap-8">
 
                     {/* Profile Bubble Left */}
                     <div className="inline-flex items-center gap-4 px-6 py-3 rounded-full border-2 border-bram-border bg-slate-50 shadow-sm shrink-0">
                         <CircleUser size={28} className="text-bram-accent" />
-                        <span className="font-black text-lg tracking-tight">{username}</span>
+                        <span className="font-bold text-lg tracking-normal">{username}</span>
                     </div>
 
                     {/* Title Group Right */}
                     <div className="flex flex-col border-l-2 border-bram-primary/20 pl-10">
-                        <h1 className="text-5xl font-black tracking-tighter leading-tight">
+                        <h1 className="text-5xl font-extrabold tracking-tight leading-tight">
                             Bram <span className="text-bram-primary">Vortex</span>
                         </h1>
-                        <p className="text-bram-text-muted font-black text-xs tracking-[0.3em] uppercase mt-1">Infrastructure Portal</p>
+                        <p className="text-bram-text-muted font-bold text-xs tracking-[0.3em] uppercase mt-1">Infrastructure Portal</p>
                     </div>
                 </div>
             </div>
@@ -164,7 +165,7 @@ export default function Dashboard() {
                 {isLoadingRepos ? (
                     <div className="p-32 text-center bg-white rounded-[3rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-6 text-bram-primary" size={64} />
-                        <p className="font-black text-bram-text-muted uppercase tracking-widest text-sm">Fetching repositories...</p>
+                        <p className="font-bold text-bram-text-muted uppercase tracking-[0.2em] text-sm">Fetching repositories...</p>
                     </div>
                 ) : (
                     repos.map((repo) => {
@@ -187,11 +188,11 @@ export default function Dashboard() {
                                     <div className="w-full px-10 py-8 flex items-center gap-10">
                                         <div className={`flex-shrink-0 w-20 h-20 rounded-[2rem] flex items-center justify-center transition-colors
                                             ${isSelected ? 'bg-bram-primary-soft text-bram-primary' : 'bg-slate-50 text-slate-400'}`}>
-                                            <Code size={40} strokeWidth={2.5} />
+                                            <Code size={40} strokeWidth={2} />
                                         </div>
                                         <div className="flex-1 text-left">
-                                            <div className={`font-black truncate text-3xl tracking-tighter ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>{repo.name}</div>
-                                            <div className="text-bram-text-muted text-sm font-black uppercase tracking-[0.25em] mt-1">{repo.language || 'Code'}</div>
+                                            <div className={`font-bold truncate text-3xl tracking-tight ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>{repo.name}</div>
+                                            <div className="text-bram-text-muted text-sm font-bold uppercase tracking-[0.2em] mt-1">{repo.language || 'Code'}</div>
                                         </div>
                                         <ChevronRight size={32} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
                                     </div>
@@ -203,20 +204,20 @@ export default function Dashboard() {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12">
                                                 {/* Target Cloud */}
                                                 <div className="relative">
-                                                    <label className="block text-xs font-black uppercase tracking-[0.2em] mb-3 text-bram-primary">Target Cloud</label>
+                                                    <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-3 text-bram-primary">Target Cloud</label>
                                                     <button type="button" onClick={() => { setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
                                                             className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl border-2 transition-all outline-none bg-bram-primary-soft/30
                                                             ${isCloudMenuOpen ? 'border-bram-primary shadow-lg' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-4">
                                                             <SelectedCloudIcon />
-                                                            <span className="text-lg font-black text-bram-text-main">{selectedCloudObj?.label}</span>
+                                                            <span className="text-lg font-bold text-bram-text-main tracking-normal">{selectedCloudObj?.label}</span>
                                                         </div>
                                                         <ChevronDown size={24} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
                                                     </button>
                                                     {isCloudMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-3 rounded-2xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {CLOUD_PROVIDERS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-4 px-6 py-5 hover:bg-bram-primary-soft transition-colors font-black text-lg text-bram-text-main text-left"
+                                                                <button key={opt.id} className="w-full flex items-center gap-4 px-6 py-5 hover:bg-bram-primary-soft transition-colors font-bold text-lg text-bram-text-main text-left tracking-normal"
                                                                         onClick={() => { setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}><opt.icon /> {opt.label}</button>
                                                             ))}
                                                         </div>
@@ -225,20 +226,20 @@ export default function Dashboard() {
 
                                                 {/* Infrastructure */}
                                                 <div className="relative">
-                                                    <label className="block text-xs font-black uppercase tracking-[0.2em] mb-3 text-bram-primary">Infrastructure</label>
+                                                    <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-3 text-bram-primary">Infrastructure</label>
                                                     <button type="button" onClick={() => { setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
                                                             className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl border-2 transition-all outline-none bg-bram-primary-soft/30
                                                             ${isComputeMenuOpen ? 'border-bram-primary shadow-lg' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
                                                         <div className="flex items-center gap-4">
                                                             <SelectedComputeIcon size={24} className="text-bram-primary" />
-                                                            <span className="text-lg font-black text-bram-text-main">{selectedComputeObj?.label}</span>
+                                                            <span className="text-lg font-bold text-bram-text-main tracking-normal">{selectedComputeObj?.label}</span>
                                                         </div>
                                                         <ChevronDown size={24} className={`transition-transform duration-300 ${isComputeMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
                                                     </button>
                                                     {isComputeMenuOpen && (
                                                         <div className="absolute top-full left-0 right-0 mt-3 rounded-2xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
                                                             {COMPUTE_OPTIONS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-4 px-6 py-5 hover:bg-bram-primary-soft transition-colors font-black text-lg text-bram-text-main text-left"
+                                                                <button key={opt.id} className="w-full flex items-center gap-4 px-6 py-5 hover:bg-bram-primary-soft transition-colors font-bold text-lg text-bram-text-main text-left tracking-normal"
                                                                         onClick={() => { setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}><opt.icon size={24} className="text-bram-primary" /> {opt.label}</button>
                                                             ))}
                                                         </div>
@@ -247,10 +248,10 @@ export default function Dashboard() {
                                             </div>
 
                                             <div className="flex gap-6">
-                                                <button className="px-10 py-5 rounded-2xl border-2 border-bram-primary/30 font-black text-lg uppercase tracking-widest text-bram-primary hover:bg-bram-primary-soft transition-all"
+                                                <button className="px-10 py-5 rounded-2xl border-2 border-bram-primary/30 font-bold text-lg uppercase tracking-[0.15em] text-bram-primary hover:bg-bram-primary-soft transition-all"
                                                         onClick={() => setSelectedRepoId(null)}>Cancel</button>
                                                 <button onClick={() => handleProceedToParameters(repo)}
-                                                        className="flex-1 py-5 rounded-[1.5rem] bg-bram-primary text-white font-black text-2xl hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase">
+                                                        className="flex-1 py-5 rounded-[1.5rem] bg-bram-primary text-white font-bold text-2xl hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-[0.1em]">
                                                     Next: Parameters <ChevronRight size={24} />
                                                 </button>
                                             </div>
@@ -265,7 +266,7 @@ export default function Dashboard() {
 
             {/* Logout Section */}
             <div className="w-full max-w-5xl mt-24 flex justify-center px-6">
-                <button className="w-full px-10 py-6 rounded-[3rem] flex items-center justify-center gap-6 font-black text-lg uppercase tracking-[0.25em] transition-all text-white/40 bg-white/5 border-2 border-white/10 hover:bg-red-500 hover:text-white hover:border-red-600 shadow-sm" onClick={handleLogout}>
+                <button className="w-full px-10 py-6 rounded-[3rem] flex items-center justify-center gap-6 font-bold text-lg uppercase tracking-[0.2em] transition-all text-white/40 bg-white/5 border-2 border-white/10 hover:bg-red-500 hover:text-white hover:border-red-600 shadow-sm" onClick={handleLogout}>
                     <LogOut size={28} className="rotate-180" /><span>Terminate Session</span></button>
             </div>
         </div>
