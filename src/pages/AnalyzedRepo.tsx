@@ -4,7 +4,7 @@ import api from '../api/axiosInstance';
 import {
     Loader2, ArrowLeft, Database, Terminal,
     CheckCircle2, Download, AlertCircle, Play, X,
-    Layers, Settings, GitBranch, FileCode
+    Layers, Settings, GitBranch, FileCode, HelpCircle, GitCommit
 } from 'lucide-react';
 import { DiffEditor } from "@monaco-editor/react";
 
@@ -12,6 +12,7 @@ import { DiffEditor } from "@monaco-editor/react";
 interface AnalysisJob {
     jobId: string;
     repoName: string;
+    repoUrl: string;
     targetCloud: string;
     computeType: string;
     status: string;
@@ -42,6 +43,7 @@ const AnalyzedRepo: React.FC = () => {
     const [isDownloading, setIsDownloading] = useState(false);
 
     const [isReviewOpen, setIsReviewOpen] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // New State
     const [diffData, setDiffData] = useState<DiffFile[]>([]);
     const [isFetchingDiff, setIsFetchingDiff] = useState(false);
     const [selectedFile, setSelectedFile] = useState<DiffFile | null>(null);
@@ -57,12 +59,12 @@ const AnalyzedRepo: React.FC = () => {
             try {
                 const response = await api.get(`/dashboard/jobs/${jobId}`);
                 setJob(response.data);
-                if (['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'].includes(response.data.status)) {
-                    stopPolling.current = true;
+                if (['FAILED', 'READY_FOR_EXECUTION', 'EXECUTING'].includes(response.data.status)) {
+                    stopPolling.current = response.data.status !== 'EXECUTING';
                 }
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
-                console.warn("⏳ Job not found yet, retrying...");
+                console.warn("⏳ Job status fetch retry...");
             }
         };
         fetchJobStatus();
@@ -123,10 +125,9 @@ const AnalyzedRepo: React.FC = () => {
         try {
             const response = await api.get(`/dashboard/analysis/${jobId}/review`);
             if (response.data && response.data.files) {
-                const files = response.data.files;
-                setDiffData(files);
-                if (files.length > 0) {
-                    setSelectedFile(files[0]);
+                setDiffData(response.data.files);
+                if (response.data.files.length > 0) {
+                    setSelectedFile(response.data.files[0]);
                     setIsReviewOpen(true);
                 }
             }
@@ -134,13 +135,36 @@ const AnalyzedRepo: React.FC = () => {
         } catch (error) { alert("Review failed to load."); } finally { setIsFetchingDiff(false); }
     };
 
-    const handleExecuteDeployment = async () => {
+    // Triggered when user clicks "Approve & Deploy" in Review Modal
+    const handleInitiateDeployment = () => {
+        setIsConfirmModalOpen(true);
+    };
+
+    // Case: NAI (Commit to GitHub)[cite: 5, 6]
+    const handleYesCommit = async () => {
+        if (!job || !job.repoUrl) return;
+        setIsConfirmModalOpen(false);
         setIsDeploying(true);
-        setTimeout(() => {
-            alert("🚀 Infrastructure Deployment Triggered!");
-            setIsDeploying(false);
+        try {
+            await api.post(`/dashboard/confirm-deployment/${jobId}`, {
+                repoUrl: job.repoUrl
+            });
+            alert("🚀 Deployment sequence initiated!");
             setIsReviewOpen(false);
-        }, 2000);
+            stopPolling.current = false;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (error) {
+            alert("Failed to trigger deployment.");
+        } finally {
+            setIsDeploying(false);
+        }
+    };
+
+    // Case: OXI (Download & Exit)
+    const handleNoDownload = async () => {
+        setIsConfirmModalOpen(false);
+        await handleDownloadMaster();
+        navigate('/dashboard');
     };
 
     const getMiniStatusIcon = (rawStatus: string | undefined) => {
@@ -170,7 +194,7 @@ const AnalyzedRepo: React.FC = () => {
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-10 font-sans antialiased text-left relative">
 
-            {/* HEADER - LARGE (p-8) */}
+            {/* HEADER */}
             <div className="w-full max-w-7xl mx-auto mb-10 bg-white p-8 rounded-[2.5rem] border-2 border-bram-border shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-8">
                     <button onClick={() => navigate('/dashboard')} className="p-4 bg-slate-100 rounded-full hover:bg-bram-primary-soft transition-all">
@@ -191,7 +215,7 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* MAIN VIEW - LARGE (gap-8) */}
+            {/* TERMINAL VIEWS */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 min-h-0">
                 <div className="bg-terminal-bg rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
@@ -214,7 +238,7 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* CONTROL PANEL - LARGE (p-8) */}
+            {/* CONTROL PANEL */}
             <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-bram-border p-8 shadow-xl flex flex-col md:flex-row items-center gap-10">
                 <div className="flex-1 flex gap-12">
                     {serviceStatuses.map((svc) => (
@@ -246,14 +270,11 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* ========================================= */}
-            {/* PRO MODAL - OPTIMIZED DIFF VIEWER AREA    */}
-            {/* ========================================= */}
+            {/* REVIEW MODAL */}
             {isReviewOpen && selectedFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 lg:p-6 overflow-hidden">
                     <div className="bg-[#0f172a] border border-white/10 w-full max-w-[98vw] h-full max-h-[96vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-300">
 
-                        {/* Modal Header - Slimmer */}
                         <div className="px-10 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
                             <div className="flex items-center gap-5">
                                 <div className="p-3 bg-emerald-500/20 rounded-2xl border border-emerald-500/20 shadow-inner">
@@ -273,7 +294,6 @@ const AnalyzedRepo: React.FC = () => {
                         </div>
 
                         <div className="flex-1 flex min-h-0">
-                            {/* Left Sidebar - Slimmer width */}
                             <div className="w-64 border-r border-white/5 bg-black/20 flex flex-col p-6 overflow-y-auto scrollbar-hide">
                                 {Object.entries(categories).map(([catName, files]) => (
                                     <div key={catName} className="mb-8">
@@ -308,7 +328,6 @@ const AnalyzedRepo: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Main Editor View - Maximized Padding (p-4 instead of p-10) */}
                             <div className="flex-1 flex flex-col p-6 bg-[#0f172a]">
                                 <div className="mb-4 flex justify-between items-end">
                                     <div>
@@ -320,7 +339,6 @@ const AnalyzedRepo: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Monaco Editor - Small internal padding (p-4) to maximize text area */}
                                 <div className="flex-1 border border-white/5 rounded-[2rem] overflow-hidden bg-[#050505] shadow-2xl shadow-black p-4">
                                     <DiffEditor
                                         key={selectedFile.filename}
@@ -339,7 +357,6 @@ const AnalyzedRepo: React.FC = () => {
                                             padding: { top: 20, bottom: 20 },
                                             lineNumbersMinChars: 4,
                                             lineDecorationsWidth: 15,
-                                            glyphMargin: false,
                                             wordWrap: "on",
                                             scrollbar: { vertical: 'hidden', horizontal: 'hidden' }
                                         }}
@@ -348,7 +365,6 @@ const AnalyzedRepo: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Modal Footer - Slimmer */}
                         <div className="px-10 py-6 border-t border-white/5 bg-white/5 flex justify-between items-center">
                             <button
                                 onClick={handleDownloadComparison}
@@ -367,12 +383,54 @@ const AnalyzedRepo: React.FC = () => {
                                     Close
                                 </button>
                                 <button
-                                    onClick={handleExecuteDeployment}
-                                    disabled={isDeploying}
+                                    onClick={handleInitiateDeployment}
+                                    disabled={isDeploying || job.status === 'EXECUTING'}
                                     className="px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
                                 >
                                     {isDeploying ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
                                     Approve & Deploy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================= */}
+            {/* NEW: COMMIT CONFIRMATION MODAL            */}
+            {/* ========================================= */}
+            {isConfirmModalOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-6">
+                    <div className="bg-white border-2 border-slate-200 w-full max-w-lg rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="p-5 bg-blue-50 rounded-full mb-6">
+                                <HelpCircle className="text-bram-primary" size={48} />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase italic mb-2">Final Confirmation</h3>
+                            <p className="text-slate-500 text-sm font-medium mb-10 leading-relaxed">
+                                Do you want to <span className="font-bold text-slate-900 uppercase italic">commit</span> these validated infrastructure files directly to your GitHub repository?
+                            </p>
+
+                            <div className="w-full flex flex-col gap-3">
+                                <button
+                                    onClick={handleYesCommit}
+                                    className="w-full py-5 rounded-2xl bg-bram-primary text-white font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-200"
+                                >
+                                    <GitCommit size={18} />
+                                    Yes, Commit to my Repo
+                                </button>
+                                <button
+                                    onClick={handleNoDownload}
+                                    className="w-full py-5 rounded-2xl bg-slate-100 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <Download size={18} />
+                                    No, Download Locally & Exit
+                                </button>
+                                <button
+                                    onClick={() => setIsConfirmModalOpen(false)}
+                                    className="mt-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-slate-600 transition-all"
+                                >
+                                    Cancel
                                 </button>
                             </div>
                         </div>
