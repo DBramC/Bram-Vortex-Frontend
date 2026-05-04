@@ -120,18 +120,36 @@ const AnalyzedRepo: React.FC = () => {
     };
 
     const handleYesCommit = async () => {
-        if (!job || !job.repoUrl) return;
+        if (!job || !job.repoUrl) {
+            console.error("❌ Missing job data or repoUrl");
+            return;
+        }
+
         setIsConfirmModalOpen(false);
         setIsDeploying(true);
+
         try {
-            await api.post(`/dashboard/confirm-deployment/${jobId}`, { repoUrl: job.repoUrl });
-            alert("🚀 Deployment sequence initiated!");
+            // 1. Ενημέρωση του Orchestrator για την έναρξη του deployment
+            await api.post(`/dashboard/confirm-deployment/${jobId}`, {
+                repoUrl: job.repoUrl
+            });
+
+            // 2. Άνοιγμα του GitHub Repository σε νέο tab για έλεγχο του commit
+            window.open(job.repoUrl, '_blank', 'noopener,noreferrer');
+
+            // 3. Κλείσιμο του review modal
             setIsReviewOpen(false);
-            stopPolling.current = false;
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+            // 4. Ανακατεύθυνση στο Dashboard για παρακολούθηση του status
+            // Ο χρήστης θα βλέπει πλέον το job status να αλλάζει σε "EXECUTING" ή "COMPLETED"
+            navigate('/dashboard');
+
         } catch (error) {
-            alert("Failed to trigger deployment.");
-        } finally { setIsDeploying(false); }
+            console.error("❌ Deployment failed:", error);
+            alert("Failed to trigger deployment sequence. Please check logs.");
+        } finally {
+            setIsDeploying(false);
+        }
     };
 
     const handleNoDownload = async () => {
