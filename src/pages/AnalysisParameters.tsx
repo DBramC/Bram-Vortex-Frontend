@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import {
@@ -6,7 +6,34 @@ import {
     ChevronRight, MapPin
 } from 'lucide-react';
 
-// --- ICONS (Same as Dashboard for consistency) ---
+// --- DATA STRUCTURES ---
+const CLOUD_PROVIDERS = [
+    { id: 'AWS', label: 'Amazon Web Services', icon: 'aws' },
+    { id: 'GCP', label: 'Google Cloud Platform', icon: 'gcp' },
+    { id: 'Azure', label: 'Microsoft Azure', icon: 'azure' },
+];
+
+// Βασικές επιλογές regions ανά πάροχο
+const REGIONS_MAP: Record<string, { id: string; label: string }[]> = {
+    AWS: [
+        { id: 'us-east-1', label: 'US East (N. Virginia)' },
+        { id: 'eu-central-1', label: 'Europe (Frankfurt)' },
+        { id: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' },
+        { id: 'us-west-2', label: 'US West (Oregon)' },
+    ],
+    GCP: [
+        { id: 'us-central1', label: 'US Central (Iowa)' },
+        { id: 'europe-west3', label: 'Europe West (Frankfurt)' },
+        { id: 'asia-southeast1', label: 'Asia Southeast (Singapore)' },
+    ],
+    Azure: [
+        { id: 'east us', label: 'East US' },
+        { id: 'germany west central', label: 'Germany West Central' },
+        { id: 'southeast asia', label: 'Southeast Asia' },
+    ]
+};
+
+// --- ICONS ---
 const AwsIcon = () => (
     <svg viewBox="0 0 64 36" width="30" height="18" fill="currentColor">
         <text x="2" y="24" fontFamily="Arial" fontWeight="800" fontSize="26" fill="currentColor">aws</text>
@@ -31,20 +58,20 @@ const AzureIcon = () => (
     </svg>
 );
 
-const CLOUD_PROVIDERS = [
-    { id: 'AWS', label: 'Amazon Web Services', icon: AwsIcon },
-    { id: 'GCP', label: 'Google Cloud Platform', icon: GcpIcon },
-    { id: 'Azure', label: 'Microsoft Azure', icon: AzureIcon },
-];
-
 const AnalysisParameters: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [targetCloud, setTargetCloud] = useState('AWS');
     const [targetRegion, setTargetRegion] = useState('eu-central-1');
 
-    // Dropdown state
+    // Dropdown states
     const [isCloudMenuOpen, setIsCloudMenuOpen] = useState(false);
+    const [isRegionMenuOpen, setIsRegionMenuOpen] = useState(false);
+
+    // Reset region when cloud changes
+    useEffect(() => {
+        setTargetRegion(REGIONS_MAP[targetCloud][0].id);
+    }, [targetCloud]);
 
     const handleStartAnalysis = async () => {
         setLoading(true);
@@ -56,7 +83,6 @@ const AnalysisParameters: React.FC = () => {
                 repoName: localStorage.getItem('selectedRepoName')
             });
             navigate(`/dashboard/analysis/${response.data}`);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             alert("Failed to start analysis.");
         } finally {
@@ -65,7 +91,7 @@ const AnalysisParameters: React.FC = () => {
     };
 
     const selectedCloudObj = CLOUD_PROVIDERS.find(c => c.id === targetCloud);
-    const SelectedCloudIcon = selectedCloudObj?.icon || Cloud;
+    const currentRegionObj = REGIONS_MAP[targetCloud].find(r => r.id === targetRegion);
 
     return (
         <div className="min-h-screen w-full bg-bram-bg flex items-center justify-center p-6">
@@ -76,6 +102,7 @@ const AnalysisParameters: React.FC = () => {
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+
                     {/* CLOUD PROVIDER DROPDOWN */}
                     <div className="relative">
                         <label className="flex items-center gap-2 text-[11px] font-bold text-bram-primary uppercase tracking-[0.2em] mb-4">
@@ -84,12 +111,14 @@ const AnalysisParameters: React.FC = () => {
 
                         <button
                             type="button"
-                            onClick={() => setIsCloudMenuOpen(!isCloudMenuOpen)}
+                            onClick={() => { setIsCloudMenuOpen(!isCloudMenuOpen); setIsRegionMenuOpen(false); }}
                             className={`w-full flex items-center justify-between px-8 py-6 rounded-[2rem] border-2 transition-all outline-none bg-slate-50
                             ${isCloudMenuOpen ? 'border-bram-primary shadow-lg bg-white' : 'border-slate-100 hover:border-bram-primary/40'}`}
                         >
                             <div className="flex items-center gap-4">
-                                <SelectedCloudIcon />
+                                {targetCloud === 'AWS' && <AwsIcon />}
+                                {targetCloud === 'GCP' && <GcpIcon />}
+                                {targetCloud === 'Azure' && <AzureIcon />}
                                 <span className="text-lg font-bold text-slate-800">{selectedCloudObj?.label}</span>
                             </div>
                             <ChevronDown size={24} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
@@ -103,31 +132,57 @@ const AnalysisParameters: React.FC = () => {
                                         className="w-full flex items-center gap-4 px-8 py-5 hover:bg-blue-50 transition-colors font-bold text-lg text-slate-700 text-left"
                                         onClick={() => { setTargetCloud(opt.id); setIsCloudMenuOpen(false); }}
                                     >
-                                        <opt.icon /> {opt.label}
+                                        {opt.id === 'AWS' && <AwsIcon />}
+                                        {opt.id === 'GCP' && <GcpIcon />}
+                                        {opt.id === 'Azure' && <AzureIcon />}
+                                        {opt.label}
                                     </button>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    {/* REGION INPUT (Styled to match dropdown) */}
+                    {/* TARGET REGION DROPDOWN */}
                     <div className="relative">
                         <label className="flex items-center gap-2 text-[11px] font-bold text-bram-primary uppercase tracking-[0.2em] mb-4">
                             <MapPin size={14} /> Target Region
                         </label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={targetRegion}
-                                onChange={(e) => setTargetRegion(e.target.value)}
-                                className="w-full px-8 py-6 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-mono text-lg text-slate-800 focus:border-bram-primary focus:bg-white outline-none transition-all pr-14"
-                                placeholder="e.g. us-east-1"
-                            />
-                            <Globe size={22} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" />
-                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => { setIsRegionMenuOpen(!isRegionMenuOpen); setIsCloudMenuOpen(false); }}
+                            className={`w-full flex items-center justify-between px-8 py-6 rounded-[2rem] border-2 transition-all outline-none bg-slate-50
+                            ${isRegionMenuOpen ? 'border-bram-primary shadow-lg bg-white' : 'border-slate-100 hover:border-bram-primary/40'}`}
+                        >
+                            <div className="flex items-center gap-4">
+                                <Globe size={20} className="text-bram-primary" />
+                                <span className="text-lg font-bold text-slate-800">{currentRegionObj?.label} ({targetRegion})</span>
+                            </div>
+                            <ChevronDown size={24} className={`transition-transform duration-300 ${isRegionMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
+                        </button>
+
+                        {isRegionMenuOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-4 rounded-[2rem] border-2 border-slate-100 bg-white shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 max-h-64 overflow-y-auto">
+                                {REGIONS_MAP[targetCloud].map(reg => (
+                                    <button
+                                        key={reg.id}
+                                        className="w-full flex items-center gap-4 px-8 py-5 hover:bg-blue-50 transition-colors font-bold text-lg text-slate-700 text-left"
+                                        onClick={() => { setTargetRegion(reg.id); setIsRegionMenuOpen(false); }}
+                                    >
+                                        <Globe size={18} className="text-slate-300" />
+                                        <div>
+                                            <div className="text-sm font-black uppercase text-bram-primary tracking-tighter">{reg.id}</div>
+                                            <div className="text-xs text-slate-400">{reg.label}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
+
                 </div>
 
+                {/* BUTTONS SECTION */}
                 <div className="flex gap-4">
                     <button
                         onClick={() => navigate('/dashboard')}
