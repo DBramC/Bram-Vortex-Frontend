@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import {
     CircleUser, Code, ChevronRight, LogOut, Loader2,
-    Zap, Info
+    Zap, Info, LayoutDashboard
 } from 'lucide-react';
 
 // --- DATA TYPES ---
@@ -26,14 +26,15 @@ export default function Dashboard() {
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
     const repoRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-    // --- EFFECT: CLICK TO CENTER ---
+    // --- EFFECT: CLICK TO CENTER (THE VORTEX FEEL) ---
     useEffect(() => {
         if (selectedRepoId !== null) {
             const element = repoRefs.current.get(selectedRepoId);
             if (element) {
+                // Timing fix: περιμένουμε το animation του expansion να ξεκινήσει
                 setTimeout(() => {
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100);
+                }, 150);
             }
         }
     }, [selectedRepoId]);
@@ -51,7 +52,7 @@ export default function Dashboard() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // --- INITIAL FETCH ---
+    // --- INITIAL AUTH & FETCH ---
     useEffect(() => {
         const token = localStorage.getItem('jwt_token');
         if (!token) { navigate('/', { replace: true }); return; }
@@ -94,21 +95,24 @@ export default function Dashboard() {
         <div className="min-h-screen flex flex-col items-center bg-bram-bg text-bram-text-main antialiased font-sans p-10 pb-32">
 
             {/* HEADER AREA */}
-            <div className="w-full flex flex-col items-center pt-8 px-6">
-                <div className="w-full max-w-5xl bg-white border-2 border-bram-border rounded-[3rem] px-10 py-8 shadow-2xl flex items-center gap-8">
-
-                    {/* Profile Bubble Left */}
-                    <div className="inline-flex items-center gap-4 px-6 py-3 rounded-full border-2 border-bram-border bg-slate-50 shadow-sm shrink-0">
-                        <CircleUser size={28} className="text-bram-accent" />
-                        <span className="font-bold text-lg tracking-normal">{username}</span>
+            <div className="w-full flex flex-col items-center pt-8 px-6 text-left">
+                <div className="w-full max-w-5xl bg-white border-2 border-bram-border rounded-[3rem] px-10 py-8 shadow-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-8">
+                        <div className="inline-flex items-center gap-4 px-6 py-3 rounded-full border-2 border-bram-border bg-slate-50 shadow-sm shrink-0">
+                            <CircleUser size={28} className="text-bram-accent" />
+                            <span className="font-bold text-lg tracking-normal">{username}</span>
+                        </div>
+                        <div className="flex flex-col border-l-2 border-bram-primary/20 pl-10">
+                            <h1 className="text-5xl font-extrabold tracking-tight leading-tight">
+                                Bram <span className="text-bram-primary">Vortex</span>
+                            </h1>
+                            <p className="text-bram-text-muted font-bold text-xs tracking-[0.3em] uppercase mt-1">Infrastructure Portal</p>
+                        </div>
                     </div>
 
-                    {/* Title Group Right */}
-                    <div className="flex flex-col border-l-2 border-bram-primary/20 pl-10">
-                        <h1 className="text-5xl font-extrabold tracking-tight leading-tight">
-                            Bram <span className="text-bram-primary">Vortex</span>
-                        </h1>
-                        <p className="text-bram-text-muted font-bold text-xs tracking-[0.3em] uppercase mt-1">Infrastructure Portal</p>
+                    <div className="hidden md:flex items-center gap-3 bg-blue-50 px-6 py-3 rounded-full border border-blue-100">
+                        <LayoutDashboard size={20} className="text-bram-primary" />
+                        <span className="text-bram-primary font-black text-xs uppercase tracking-widest">Repo Selection</span>
                     </div>
                 </div>
             </div>
@@ -118,7 +122,7 @@ export default function Dashboard() {
                 {isLoadingRepos ? (
                     <div className="p-32 text-center bg-white rounded-[3rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-6 text-bram-primary" size={64} />
-                        <p className="font-bold text-bram-text-muted uppercase tracking-[0.2em] text-sm">Fetching repositories...</p>
+                        <p className="font-bold text-bram-text-muted uppercase tracking-[0.2em] text-sm">Synchronizing codebase...</p>
                     </div>
                 ) : (
                     repos.map((repo) => {
@@ -131,44 +135,67 @@ export default function Dashboard() {
                                 onClick={() => setSelectedRepoId(isSelected ? null : repo.id)}
                                 className={`relative transition-all duration-500 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
                             >
+                                {/* MAIN CARD CONTAINER WITH CONTRAST & SCALING */}
                                 <div className={`group transition-all duration-500 ease-out rounded-[3rem] border-2
-                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.03] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)]' : 'bg-white border-bram-border hover:border-bram-primary/40 hover:scale-[1.01]'}`}>
+                                    ${isSelected
+                                    ? 'bg-white border-bram-primary scale-[1.03] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.35)]'
+                                    : 'bg-white border-bram-border hover:border-bram-primary/40 hover:scale-[1.01]'}`}>
 
                                     <div className="w-full px-10 py-8 flex items-center gap-10">
-                                        <div className={`flex-shrink-0 w-20 h-20 rounded-[2rem] flex items-center justify-center transition-colors
-                                            ${isSelected ? 'bg-bram-primary-soft text-bram-primary' : 'bg-slate-50 text-slate-400'}`}>
-                                            <Code size={40} strokeWidth={2} />
+                                        {/* ICON BOX - DYNAMIC COLORS */}
+                                        <div className={`flex-shrink-0 w-24 h-24 rounded-[2.2rem] flex items-center justify-center transition-all duration-500
+                                            ${isSelected ? 'bg-bram-primary text-white shadow-[0_10px_30px_-5px_rgba(0,186,134,0.4)]' : 'bg-slate-50 text-slate-400'}`}>
+                                            <Code size={48} strokeWidth={2.5} />
                                         </div>
+
                                         <div className="flex-1 text-left">
-                                            <div className={`font-bold truncate text-3xl tracking-tight ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>{repo.name}</div>
-                                            <div className="text-bram-text-muted text-sm font-bold uppercase tracking-[0.2em] mt-1">{repo.language || 'Code'}</div>
+                                            <div className={`font-black truncate text-3xl tracking-tight transition-colors duration-300 ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>
+                                                {repo.name}
+                                            </div>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className={`text-sm font-bold uppercase tracking-[0.2em] ${isSelected ? 'text-slate-400' : 'text-bram-text-muted'}`}>
+                                                    {repo.language || 'Dynamic Source'}
+                                                </span>
+                                                {repo.private && (
+                                                    <span className="bg-amber-100 text-amber-700 text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter shadow-sm border border-amber-200">
+                                                        Private Lock
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <ChevronRight size={32} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
+
+                                        <ChevronRight size={36} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
                                     </div>
 
+                                    {/* EXPANDED CONTENT - WITH INFO SECTION CONTRAST */}
                                     {isSelected && (
-                                        <div className="px-10 pb-10 pt-4 animate-in fade-in slide-in-from-top-4 duration-500" onClick={(e) => e.stopPropagation()}>
-                                            <div className="h-px bg-bram-primary/10 mb-10 w-full" />
+                                        <div className="px-10 pb-10 pt-4 animate-in fade-in slide-in-from-top-6 duration-500" onClick={(e) => e.stopPropagation()}>
+                                            <div className="h-px bg-slate-100 mb-10 w-full" />
 
-                                            {/* Info Section Replacement for Dropdowns */}
-                                            <div className="flex flex-col md:flex-row gap-8 items-center bg-slate-50 p-8 rounded-[2rem] border border-slate-100 mb-10">
-                                                <div className="p-4 bg-white rounded-2xl shadow-sm">
-                                                    <Info className="text-bram-primary" size={32} />
+                                            <div className="flex flex-col md:flex-row gap-8 items-center bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 mb-10 text-left shadow-inner">
+                                                <div className="p-5 bg-white rounded-3xl shadow-sm border border-slate-100">
+                                                    <Info className="text-bram-primary" size={36} />
                                                 </div>
-                                                <div className="flex-1 text-left">
-                                                    <h4 className="font-black text-slate-900 uppercase tracking-tight text-lg">Analysis Ready</h4>
-                                                    <p className="text-slate-500 text-sm font-medium mt-1">
-                                                        Select this repository to begin the automated infrastructure blueprinting process. You will configure cloud targets in the next step.
+                                                <div className="flex-1">
+                                                    <h4 className="font-black text-slate-900 uppercase tracking-tight text-xl">Initialization Ready</h4>
+                                                    <p className="text-slate-500 text-base font-medium mt-1 leading-relaxed">
+                                                        The Vortex AI engine will scan your codebase to synthesize infrastructure specifications. You will define cloud parameters in the following phase.
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex gap-6">
-                                                <button className="px-10 py-5 rounded-2xl border-2 border-bram-primary/30 font-bold text-lg uppercase tracking-[0.15em] text-bram-primary hover:bg-bram-primary-soft transition-all"
-                                                        onClick={() => setSelectedRepoId(null)}>Cancel</button>
-                                                <button onClick={() => handleProceedToParameters(repo)}
-                                                        className="flex-1 py-5 rounded-[1.5rem] bg-bram-primary text-white font-bold text-2xl hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-[0.1em] shadow-xl">
-                                                    <Zap size={24} fill="currentColor" /> Select & Configure <ChevronRight size={24} />
+                                            <div className="flex gap-4">
+                                                <button
+                                                    className="px-12 py-5 rounded-2xl border-2 border-slate-200 font-bold text-xs uppercase tracking-[0.25em] text-slate-400 hover:bg-slate-50 transition-all"
+                                                    onClick={() => setSelectedRepoId(null)}
+                                                >
+                                                    Cancel Selection
+                                                </button>
+                                                <button
+                                                    onClick={() => handleProceedToParameters(repo)}
+                                                    className="flex-1 py-5 rounded-[1.6rem] bg-bram-primary text-white font-black text-2xl hover:bg-blue-700 hover:-translate-y-1.5 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-[0.1em] shadow-[0_20px_40px_-10px_rgba(0,186,134,0.3)]"
+                                                >
+                                                    <Zap size={28} fill="currentColor" /> Proceed to Config <ChevronRight size={28} />
                                                 </button>
                                             </div>
                                         </div>
@@ -180,10 +207,15 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Logout Section */}
+            {/* TERMINATE SESSION */}
             <div className="w-full max-w-5xl mt-24 flex justify-center px-6">
-                <button className="w-full px-10 py-6 rounded-[3rem] flex items-center justify-center gap-6 font-bold text-lg uppercase tracking-[0.2em] transition-all text-white/40 bg-white/5 border-2 border-white/10 hover:bg-red-500 hover:text-white hover:border-red-600 shadow-sm" onClick={handleLogout}>
-                    <LogOut size={28} className="rotate-180" /><span>Terminate Session</span></button>
+                <button
+                    className="w-full px-10 py-6 rounded-[3rem] flex items-center justify-center gap-6 font-bold text-lg uppercase tracking-[0.2em] transition-all text-white/40 bg-white/5 border-2 border-white/10 hover:bg-red-500 hover:text-white hover:border-red-600 shadow-sm"
+                    onClick={handleLogout}
+                >
+                    <LogOut size={28} className="rotate-180" />
+                    <span>Terminate Session</span>
+                </button>
             </div>
         </div>
     );
