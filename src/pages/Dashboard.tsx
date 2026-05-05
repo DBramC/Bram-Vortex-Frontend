@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import {
     CircleUser, Code, ChevronRight, LogOut, Loader2,
-    ChevronDown, Server, Box, Network
+    LayoutDashboard, Zap, Info
 } from 'lucide-react';
 
-// --- DATA TYPES & ICONS ---
+// --- DATA TYPES ---
 interface Repo {
     id: number;
     name: string;
@@ -17,46 +17,6 @@ interface Repo {
     private: boolean;
 }
 
-const AwsIcon = () => (
-    <svg viewBox="0 0 64 36" width="40" height="24" fill="currentColor">
-        <text x="2" y="24" fontFamily="Arial, Helvetica, sans-serif" fontWeight="800" fontSize="26" fill="currentColor" letterSpacing="0">aws</text>
-        <g transform="translate(6, 9) scale(1.3)">
-            <path fill="#FF9900" d="M14.07 16.63c-2.31 1.09-5.02 1.48-7.46 1-2.11-.4-3.93-1.4-5.35-2.8-.19-.19-.04-.52.23-.44 3.01.84 6.28.74 9.15-.35 1.26-.48 2.44-1.15 3.5-1.98.23-.19.57.05.43.32-.77.13-1.56 1.44-2.42 2.3-1.15 1.15-2.5 2.11-3.93 2.82-.5.25-1.03.45-1.56.6a.81.81 0 01-1.03-1.01c.15-.54.35-1.05.6-1.55.71-1.44 1.67-2.78 2.82-3.93.86-.86 2.17-1.66 2.3-2.42.27-.14.51.19.32.42-.96 1.15-1.53 2.34-1.92 3.6-.38.82-.53 2.15.38 2.44z"/>
-            <path fill="#FF9900" d="M12.58 10.77a1.69 1.69 0 00-.67-.26 1.96 1.96 0 00-.64.13c-.17.07-.29.19-.29.35 0 .19.13.29.36.34l.77.13a2.43 2.43 0 011.57.86 1.92 1.92 0 01.36 1.2 2.13 2.13 0 01-1 1.82 4.12 4.12 0 01-2.33.58 5.62 5.62 0 01-3.1-.89l.63-1.44a4.53 4.53 0 002.4.75c.43 0 .77-.08 1.01-.22a.72.72 0 00.34-.61c0-.22-.1-.36-.29-.44a1.86 1.86 0 00-.52-.17l-.9-.16a2.4 2.4 0 01-1.49-.8 1.92 1.92 0 01-.42-1.2 2.06 2.06 0 01.92-1.73 3.64 3.64 0 012.11-.55 5.46 5.46 0 012.7.69l-.54 1.28z"/>
-        </g>
-    </svg>
-);
-
-// (GcpIcon και AzureIcon παραμένουν ως έχουν...)
-const GcpIcon = () => (
-    <svg viewBox="0 0 24 24" width="24" height="24">
-        <path fill="#EA4335" d="M12.22 5.2c-2.48 0-4.66 1.34-5.87 3.32l-3.32-2.32A11.96 11.96 0 0112.22 1c3.12 0 5.96 1.18 8.1 3.12l-2.6 2.82c-1.48-1.08-3.32-1.74-5.5-1.74z"/>
-        <path fill="#34A853" d="M22.9 12.2c0-.82-.12-1.6-.32-2.35H12.2v4.6h6.1c-.34 1.6-1.3 3.02-2.68 3.94l3.1 2.6c1.94-1.8 3.18-4.52 3.18-8.8z"/>
-        <path fill="#4A90E2" d="M12.22 23c2.95 0 5.42-.98 7.22-2.65l-3.1-2.6c-.95.66-2.18 1.05-4.12 1.05-3.22 0-5.96-2.18-6.94-5.12H1.92v2.7A11.98 11.98 0 0012.22 23z"/>
-        <path fill="#FBBC05" d="M5.28 13.68A7.2 7.2 0 014.88 12c0-.58.1-1.15.28-1.68V7.62H1.92A11.96 11.96 0 00.22 12c0 1.92.45 3.74 1.28 5.38l3.78-3.7z"/>
-    </svg>
-);
-
-const AzureIcon = () => (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="#0089D6">
-        <path d="M5.27 21L12 8.78 14.54 13h4.3L12 1 2 18.5 5.27 21z"/>
-        <path d="M16.14 13.5L12 6.5 7.86 13.5h8.28z" fill="#005BA1"/>
-        <path d="M6 15l-3.5 6H22l-4-6H6z"/>
-    </svg>
-);
-
-const CLOUD_PROVIDERS = [
-    { id: 'AWS', label: 'Amazon Web Services', icon: AwsIcon },
-    { id: 'GCP', label: 'Google Cloud Platform', icon: GcpIcon },
-    { id: 'Azure', label: 'Microsoft Azure', icon: AzureIcon },
-];
-
-const COMPUTE_OPTIONS = [
-    { id: 'Container', label: 'Managed Containers', icon: Box },
-    { id: 'Kubernetes', label: 'Kubernetes Cluster', icon: Network },
-    { id: 'VM', label: 'Virtual Machines', icon: Server },
-];
-
 export default function Dashboard() {
     const navigate = useNavigate();
     const [repos, setRepos] = useState<Repo[]>([]);
@@ -65,39 +25,6 @@ export default function Dashboard() {
 
     const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
     const repoRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-
-    const [selectedCloud, setSelectedCloud] = useState<string>('AWS');
-    const [isCloudMenuOpen, setIsCloudMenuOpen] = useState(false);
-    const [selectedCompute, setSelectedCompute] = useState<string>('Container');
-    const [isComputeMenuOpen, setIsComputeMenuOpen] = useState(false);
-
-    useEffect(() => {
-        setIsCloudMenuOpen(false);
-        setIsComputeMenuOpen(false);
-    }, [selectedRepoId]);
-
-    useEffect(() => {
-        if (selectedRepoId !== null) {
-            const element = repoRefs.current.get(selectedRepoId);
-            if (element) {
-                setTimeout(() => {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100);
-            }
-        }
-    }, [selectedRepoId]);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            let clickedInside = false;
-            repoRefs.current.forEach((ref) => {
-                if (ref.contains(event.target as Node)) clickedInside = true;
-            });
-            if (!clickedInside) setSelectedRepoId(null);
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem('jwt_token');
@@ -116,7 +43,6 @@ export default function Dashboard() {
             setRepos(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Failed to fetch repos", error);
-            setRepos([]);
         } finally { setIsLoadingRepos(false); }
     };
 
@@ -125,14 +51,17 @@ export default function Dashboard() {
         navigate('/', { replace: true });
     };
 
+    // --- Καθαρό Navigation προς τα Parameters ---
     const handleProceedToParameters = (repo: Repo) => {
+        // Αποθηκεύουμε τα βασικά στοιχεία στο localStorage για να τα βρει το επόμενο βήμα
+        localStorage.setItem('selectedRepoUrl', repo.html_url);
+        localStorage.setItem('selectedRepoName', repo.name);
+
         navigate('/parameters', {
             state: {
                 repoId: repo.id,
                 repoName: repo.name,
-                repoUrl: repo.html_url,
-                targetCloud: selectedCloud,
-                computeType: selectedCompute
+                repoUrl: repo.html_url
             }
         });
     };
@@ -142,20 +71,25 @@ export default function Dashboard() {
 
             {/* HEADER AREA */}
             <div className="w-full flex flex-col items-center pt-8 px-6">
-                <div className="w-full max-w-5xl bg-white border-2 border-bram-border rounded-[3rem] px-10 py-8 shadow-2xl flex items-center gap-8">
-
-                    {/* Profile Bubble Left */}
-                    <div className="inline-flex items-center gap-4 px-6 py-3 rounded-full border-2 border-bram-border bg-slate-50 shadow-sm shrink-0">
-                        <CircleUser size={28} className="text-bram-accent" />
-                        <span className="font-bold text-lg tracking-normal">{username}</span>
+                <div className="w-full max-w-5xl bg-white border-2 border-bram-border rounded-[3rem] px-10 py-8 shadow-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-8">
+                        {/* Profile */}
+                        <div className="inline-flex items-center gap-4 px-6 py-3 rounded-full border-2 border-bram-border bg-slate-50 shadow-sm shrink-0">
+                            <CircleUser size={28} className="text-bram-accent" />
+                            <span className="font-bold text-lg tracking-normal">{username}</span>
+                        </div>
+                        {/* Title */}
+                        <div className="flex flex-col border-l-2 border-bram-primary/20 pl-10">
+                            <h1 className="text-5xl font-extrabold tracking-tight leading-tight">
+                                Bram <span className="text-bram-primary">Vortex</span>
+                            </h1>
+                            <p className="text-bram-text-muted font-bold text-xs tracking-[0.3em] uppercase mt-1">Infrastructure Portal</p>
+                        </div>
                     </div>
 
-                    {/* Title Group Right */}
-                    <div className="flex flex-col border-l-2 border-bram-primary/20 pl-10">
-                        <h1 className="text-5xl font-extrabold tracking-tight leading-tight">
-                            Bram <span className="text-bram-primary">Vortex</span>
-                        </h1>
-                        <p className="text-bram-text-muted font-bold text-xs tracking-[0.3em] uppercase mt-1">Infrastructure Portal</p>
+                    <div className="flex items-center gap-3 bg-blue-50 px-6 py-3 rounded-full border border-blue-100">
+                        <LayoutDashboard size={20} className="text-bram-primary" />
+                        <span className="text-bram-primary font-black text-xs uppercase tracking-widest">Select Repository</span>
                     </div>
                 </div>
             </div>
@@ -165,15 +99,11 @@ export default function Dashboard() {
                 {isLoadingRepos ? (
                     <div className="p-32 text-center bg-white rounded-[3rem] border-2 border-bram-border shadow-sm">
                         <Loader2 className="animate-spin mx-auto mb-6 text-bram-primary" size={64} />
-                        <p className="font-bold text-bram-text-muted uppercase tracking-[0.2em] text-sm">Fetching repositories...</p>
+                        <p className="font-bold text-bram-text-muted uppercase tracking-[0.2em] text-sm">Fetching your codebase...</p>
                     </div>
                 ) : (
                     repos.map((repo) => {
                         const isSelected = selectedRepoId === repo.id;
-                        const selectedCloudObj = CLOUD_PROVIDERS.find(c => c.id === selectedCloud);
-                        const SelectedCloudIcon = selectedCloudObj?.icon || Box;
-                        const selectedComputeObj = COMPUTE_OPTIONS.find(c => c.id === selectedCompute);
-                        const SelectedComputeIcon = selectedComputeObj?.icon || Box;
 
                         return (
                             <div
@@ -183,76 +113,45 @@ export default function Dashboard() {
                                 className={`relative transition-all duration-500 cursor-pointer ${isSelected ? 'z-50' : 'z-10'}`}
                             >
                                 <div className={`group transition-all duration-500 ease-out rounded-[3rem] border-2
-                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.03] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)]' : 'bg-white border-bram-border hover:border-bram-primary/40 hover:scale-[1.01]'}`}>
+                                    ${isSelected ? 'bg-white border-bram-primary scale-[1.03] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)]' : 'bg-white border-bram-border hover:border-bram-primary/40 hover:scale-[1.01]'}`}>
 
                                     <div className="w-full px-10 py-8 flex items-center gap-10">
                                         <div className={`flex-shrink-0 w-20 h-20 rounded-[2rem] flex items-center justify-center transition-colors
-                                            ${isSelected ? 'bg-bram-primary-soft text-bram-primary' : 'bg-slate-50 text-slate-400'}`}>
+                                            ${isSelected ? 'bg-bram-primary text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>
                                             <Code size={40} strokeWidth={2} />
                                         </div>
                                         <div className="flex-1 text-left">
                                             <div className={`font-bold truncate text-3xl tracking-tight ${isSelected ? 'text-bram-primary' : 'text-bram-text-main'}`}>{repo.name}</div>
-                                            <div className="text-bram-text-muted text-sm font-bold uppercase tracking-[0.2em] mt-1">{repo.language || 'Code'}</div>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className="text-bram-text-muted text-sm font-bold uppercase tracking-[0.2em]">{repo.language || 'Code'}</span>
+                                                {repo.private && <span className="bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Private</span>}
+                                            </div>
                                         </div>
                                         <ChevronRight size={32} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
                                     </div>
 
                                     {isSelected && (
-                                        <div className="px-10 pb-10 pt-4 animate-in fade-in slide-in-from-top-4 duration-500" onClick={(e) => e.stopPropagation()}>
-                                            <div className="h-px bg-bram-primary/10 mb-10 w-full" />
+                                        <div className="px-10 pb-10 pt-4 animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
+                                            <div className="h-px bg-slate-100 mb-8 w-full" />
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12">
-                                                {/* Target Cloud */}
-                                                <div className="relative">
-                                                    <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-3 text-bram-primary">Target Cloud</label>
-                                                    <button type="button" onClick={() => { setIsCloudMenuOpen(!isCloudMenuOpen); setIsComputeMenuOpen(false); }}
-                                                            className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl border-2 transition-all outline-none bg-bram-primary-soft/30
-                                                            ${isCloudMenuOpen ? 'border-bram-primary shadow-lg' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
-                                                        <div className="flex items-center gap-4">
-                                                            <SelectedCloudIcon />
-                                                            <span className="text-lg font-bold text-bram-text-main tracking-normal">{selectedCloudObj?.label}</span>
-                                                        </div>
-                                                        <ChevronDown size={24} className={`transition-transform duration-300 ${isCloudMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
-                                                    </button>
-                                                    {isCloudMenuOpen && (
-                                                        <div className="absolute top-full left-0 right-0 mt-3 rounded-2xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
-                                                            {CLOUD_PROVIDERS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-4 px-6 py-5 hover:bg-bram-primary-soft transition-colors font-bold text-lg text-bram-text-main text-left tracking-normal"
-                                                                        onClick={() => { setSelectedCloud(opt.id); setIsCloudMenuOpen(false); }}><opt.icon /> {opt.label}</button>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                            <div className="flex flex-col md:flex-row gap-8 items-center bg-slate-50 p-8 rounded-[2rem] border border-slate-100 mb-8">
+                                                <div className="p-4 bg-white rounded-2xl shadow-sm">
+                                                    <Info className="text-bram-primary" size={32} />
                                                 </div>
-
-                                                {/* Infrastructure */}
-                                                <div className="relative">
-                                                    <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-3 text-bram-primary">Infrastructure</label>
-                                                    <button type="button" onClick={() => { setIsComputeMenuOpen(!isComputeMenuOpen); setIsCloudMenuOpen(false); }}
-                                                            className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl border-2 transition-all outline-none bg-bram-primary-soft/30
-                                                            ${isComputeMenuOpen ? 'border-bram-primary shadow-lg' : 'border-bram-primary/40 hover:border-bram-primary'}`}>
-                                                        <div className="flex items-center gap-4">
-                                                            <SelectedComputeIcon size={24} className="text-bram-primary" />
-                                                            <span className="text-lg font-bold text-bram-text-main tracking-normal">{selectedComputeObj?.label}</span>
-                                                        </div>
-                                                        <ChevronDown size={24} className={`transition-transform duration-300 ${isComputeMenuOpen ? 'rotate-180' : ''} text-bram-primary`} />
-                                                    </button>
-                                                    {isComputeMenuOpen && (
-                                                        <div className="absolute top-full left-0 right-0 mt-3 rounded-2xl border-2 border-bram-primary bg-white shadow-2xl z-[100] overflow-hidden">
-                                                            {COMPUTE_OPTIONS.map(opt => (
-                                                                <button key={opt.id} className="w-full flex items-center gap-4 px-6 py-5 hover:bg-bram-primary-soft transition-colors font-bold text-lg text-bram-text-main text-left tracking-normal"
-                                                                        onClick={() => { setSelectedCompute(opt.id); setIsComputeMenuOpen(false); }}><opt.icon size={24} className="text-bram-primary" /> {opt.label}</button>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                <div className="flex-1 text-left">
+                                                    <h4 className="font-black text-slate-900 uppercase tracking-tight text-lg">Ready for Analysis</h4>
+                                                    <p className="text-slate-500 text-sm font-medium mt-1">
+                                                        Vortex will scan this repository to identify the tech stack and suggest optimal infrastructure models.
+                                                    </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex gap-6">
-                                                <button className="px-10 py-5 rounded-2xl border-2 border-bram-primary/30 font-bold text-lg uppercase tracking-[0.15em] text-bram-primary hover:bg-bram-primary-soft transition-all"
-                                                        onClick={() => setSelectedRepoId(null)}>Cancel</button>
+                                            <div className="flex gap-4">
+                                                <button className="px-10 py-5 rounded-2xl border-2 border-slate-200 font-bold text-xs uppercase tracking-[0.2em] text-slate-400 hover:bg-slate-50 transition-all"
+                                                        onClick={() => setSelectedRepoId(null)}>Back</button>
                                                 <button onClick={() => handleProceedToParameters(repo)}
-                                                        className="flex-1 py-5 rounded-[1.5rem] bg-bram-primary text-white font-bold text-2xl hover:bg-bram-primary-hover hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-[0.1em]">
-                                                    Next: Parameters <ChevronRight size={24} />
+                                                        className="flex-1 py-5 rounded-2xl bg-bram-primary text-white font-black text-xl hover:bg-blue-700 hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-[0.1em] shadow-xl">
+                                                    <Zap size={24} fill="currentColor" /> Select & Configure <ChevronRight size={24} />
                                                 </button>
                                             </div>
                                         </div>
