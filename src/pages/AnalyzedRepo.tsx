@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import {
-    Loader2, ArrowLeft, Database, Terminal,  Layers,  Cpu, Box, ChevronRight
+    Loader2, ArrowLeft, Database, Terminal, Layers, Cpu, Box,
+    ChevronRight, ShieldCheck, Zap
 } from 'lucide-react';
 
 // --- INTERFACES ---
@@ -32,9 +33,11 @@ const AnalyzedRepo: React.FC = () => {
             try {
                 const response = await api.get(`/dashboard/jobs/${jobId}`);
                 setJob(response.data);
-                const finalStatuses = ['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION'];
-                if (finalStatuses.includes(response.data.status)) {
-                    stopPolling.current = response.data.status === 'COMPLETED' || response.data.status === 'FAILED';
+
+                // Αν το job ολοκληρωθεί ή αποτύχει τελείως, σταματάμε το polling
+                const terminalStatuses = ['COMPLETED', 'FAILED'];
+                if (terminalStatuses.includes(response.data.status)) {
+                    stopPolling.current = true;
                 }
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) { console.warn("Polling retry..."); }
@@ -48,7 +51,6 @@ const AnalyzedRepo: React.FC = () => {
         setIsSelecting(true);
         try {
             await api.post(`/dashboard/jobs/${jobId}/select-compute`, { selectedCompute: type });
-            // Το polling θα συνεχίσει και το status θα αλλάξει σε ANALYZING
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Selection failed."); } finally { setIsSelecting(false); }
     };
@@ -62,10 +64,12 @@ const AnalyzedRepo: React.FC = () => {
     if (!job) return <div className="h-screen bg-bram-bg flex items-center justify-center"><Loader2 className="animate-spin text-bram-primary" size={64} /></div>;
 
     const isPendingSelection = job.status === 'PENDING_USER_SELECTION';
+    const isReadyForExecution = job.status === 'READY_FOR_EXECUTION';
 
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-10 font-sans relative">
-            {/* HEADER */}
+
+            {/* HEADER AREA */}
             <div className="w-full max-w-7xl mx-auto mb-10 bg-white p-8 rounded-[2.5rem] flex items-center justify-between shadow-2xl">
                 <div className="flex items-center gap-8">
                     <button onClick={() => navigate('/dashboard')} className="p-4 bg-slate-100 rounded-full hover:bg-slate-200 transition-all"><ArrowLeft size={24} /></button>
@@ -74,37 +78,41 @@ const AnalyzedRepo: React.FC = () => {
                         <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">{job.targetCloud} • Architecture Analysis</p>
                     </div>
                 </div>
-                <div className={`px-10 py-3 rounded-full font-bold text-xs uppercase tracking-[0.2em] border-2 ${isPendingSelection ? 'bg-amber-50 text-amber-600 border-amber-200 animate-pulse' : 'bg-blue-50 text-bram-primary border-blue-200'}`}>
-                    {job.status.replace(/_/g, ' ')}
+                <div className={`px-10 py-3 rounded-full font-bold text-xs uppercase tracking-[0.2em] border-2 
+                    ${isReadyForExecution ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.2)]' :
+                    isPendingSelection ? 'bg-amber-50 text-amber-600 border-amber-200 animate-pulse' :
+                        'bg-blue-50 text-bram-primary border-blue-200'}`}>
+                    {isReadyForExecution ? "Ready for Execution" : job.status.replace(/_/g, ' ')}
                 </div>
             </div>
 
-            {/* MAIN AREA */}
+            {/* MAIN CONTENT AREA */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 min-h-0">
-                {/* LOGS PANEL */}
+
+                {/* TERMINAL LOGS */}
                 <div className="bg-[#0f172a] rounded-[2rem] border-2 border-white/10 flex flex-col overflow-hidden shadow-2xl">
                     <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
                         <Terminal size={18} className="text-emerald-400" />
-                        <span className="font-bold text-[10px] uppercase text-slate-400 tracking-[0.2em]">Terminal_Output</span>
+                        <span className="font-bold text-[10px] uppercase text-slate-400 tracking-[0.2em]">Live_Orchestration_Logs</span>
                     </div>
-                    <div className="p-8 overflow-auto flex-1 font-mono text-sm text-emerald-400"><pre className="whitespace-pre-wrap">{job.promptMessage || "> Awaiting AI signals..."}</pre></div>
+                    <div className="p-8 overflow-auto flex-1 font-mono text-sm text-emerald-400 scrollbar-hide">
+                        <pre className="whitespace-pre-wrap leading-relaxed">{job.promptMessage || "> Initializing Vortex engines..."}</pre>
+                        {isReadyForExecution && <div className="mt-4 text-emerald-300 font-black">🏆 [ORCHESTRATOR] VALIDATOR COMPLETED SUCCESSFULLY!</div>}
+                    </div>
                 </div>
 
-                {/* RIGHT PANEL: BLUEPRINT OR SELECTOR */}
+                {/* RIGHT INTERACTIVE PANEL */}
                 <div className="bg-[#0f172a] rounded-[2rem] border-2 border-white/10 flex flex-col overflow-hidden relative shadow-2xl">
-                    {isPendingSelection ? (
-                        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl z-20 p-10 flex flex-col items-center justify-center">
-                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Select Architecture</h2>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-10 text-center">AI analysis complete. Choose your deployment path based on monthly cost.</p>
 
+                    {/* CASE 1: PENDING USER SELECTION */}
+                    {isPendingSelection && (
+                        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl z-20 p-10 flex flex-col items-center justify-center animate-in fade-in duration-500">
+                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Select Architecture</h2>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-10 text-center">AI analysis complete. Choose your deployment path.</p>
                             <div className="grid grid-cols-1 gap-4 w-full max-w-md">
                                 {job.blueprintJson?.costEstimates && Object.entries(job.blueprintJson.costEstimates).map(([type, price]) => (
-                                    <button
-                                        key={type}
-                                        disabled={isSelecting}
-                                        onClick={() => handleSelectCompute(type)}
-                                        className="group bg-white/5 border-2 border-white/5 p-6 rounded-3xl flex items-center justify-between hover:border-bram-primary hover:bg-bram-primary/10 transition-all duration-300"
-                                    >
+                                    <button key={type} disabled={isSelecting} onClick={() => handleSelectCompute(type)}
+                                            className="group bg-white/5 border-2 border-white/5 p-6 rounded-3xl flex items-center justify-between hover:border-bram-primary hover:bg-bram-primary/10 transition-all duration-300">
                                         <div className="flex items-center gap-5">
                                             <div className="text-slate-400 group-hover:text-bram-primary transition-colors">{getComputeIcon(type)}</div>
                                             <div className="text-left">
@@ -120,17 +128,38 @@ const AnalyzedRepo: React.FC = () => {
                                 ))}
                             </div>
                         </div>
-                    ) : (
-                        <>
-                            <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
-                                <Database size={18} className="text-blue-400" />
-                                <span className="font-bold text-[10px] uppercase text-slate-400 tracking-[0.2em]">Blueprint_Spec</span>
-                            </div>
-                            <div className="p-8 overflow-auto flex-1 font-mono text-sm text-blue-400">
-                                <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Loading infrastructure schema..."}</pre>
-                            </div>
-                        </>
                     )}
+
+                    {/* CASE 2: READY FOR EXECUTION (SUCCESS OVERLAY) */}
+                    {isReadyForExecution && (
+                        <div className="absolute inset-0 bg-emerald-600/10 backdrop-blur-2xl z-30 p-12 flex flex-col items-center justify-center animate-in zoom-in duration-500">
+                            <div className="bg-emerald-500 p-6 rounded-full shadow-[0_0_50px_rgba(16,185,129,0.5)] mb-8">
+                                <ShieldCheck size={64} className="text-white" />
+                            </div>
+                            <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-4 text-center">Synthesis Validated</h2>
+                            <p className="text-emerald-100 text-sm font-bold uppercase tracking-widest mb-12 text-center max-w-sm leading-relaxed">
+                                Infrastructure code and deployment pipelines have been generated and verified for compliance.
+                            </p>
+
+                            <button
+                                onClick={() => navigate(`/dashboard/jobs/${jobId}/diff`)}
+                                className="w-full max-w-md py-6 bg-white text-emerald-700 rounded-[2rem] font-black text-xl uppercase tracking-widest flex items-center justify-center gap-4 hover:scale-105 transition-all shadow-2xl active:scale-95"
+                            >
+                                <Zap fill="currentColor" /> Review & Commit <ChevronRight />
+                            </button>
+
+                            <p className="mt-8 text-emerald-400/60 text-[10px] font-bold uppercase tracking-[0.3em]">Codebase: Synchronized & Secured</p>
+                        </div>
+                    )}
+
+                    {/* DEFAULT: BLUEPRINT VIEW */}
+                    <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
+                        <Database size={18} className="text-blue-400" />
+                        <span className="font-bold text-[10px] uppercase text-slate-400 tracking-[0.2em]">Blueprint_Spec</span>
+                    </div>
+                    <div className="p-8 overflow-auto flex-1 font-mono text-sm text-blue-400 scrollbar-hide">
+                        <pre>{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Synthesizing infrastructure schema..."}</pre>
+                    </div>
                 </div>
             </div>
         </div>
