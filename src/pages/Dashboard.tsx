@@ -34,7 +34,7 @@ export default function Dashboard() {
                 // Timing fix: περιμένουμε το animation του expansion να ξεκινήσει
                 setTimeout(() => {
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 150);
+                }, 100);
             }
         }
     }, [selectedRepoId]);
@@ -167,18 +167,18 @@ export default function Dashboard() {
                                         <ChevronRight size={36} className={`transition-all duration-500 ${isSelected ? 'rotate-90 text-bram-primary scale-125' : 'text-slate-300'}`} />
                                     </div>
 
-                                    {/* EXPANDED CONTENT - WITH INFO SECTION CONTRAST */}
+                                    {/* EXPANDED CONTENT - HIGH CONTRAST VERSION */}
                                     {isSelected && (
                                         <div className="px-10 pb-10 pt-4 animate-in fade-in slide-in-from-top-6 duration-500" onClick={(e) => e.stopPropagation()}>
                                             <div className="h-px bg-slate-100 mb-10 w-full" />
 
-                                            <div className="flex flex-col md:flex-row gap-8 items-center bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 mb-10 text-left shadow-inner">
-                                                <div className="p-5 bg-white rounded-3xl shadow-sm border border-slate-100">
+                                            <div className="flex flex-col md:flex-row gap-8 items-center bg-slate-100 p-8 rounded-[2.5rem] border-2 border-slate-200 mb-10 text-left shadow-sm">
+                                                <div className="p-5 bg-white rounded-3xl shadow-md border border-slate-200">
                                                     <Info className="text-bram-primary" size={36} />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <h4 className="font-black text-slate-900 uppercase tracking-normal text-xl">Initialization Ready</h4>
-                                                    <p className="text-slate-500 text-base font-medium mt-1 leading-relaxed">
+                                                    <h4 className="font-black text-slate-900 uppercase tracking-wider text-xl">Initialization Ready</h4>
+                                                    <p className="text-slate-600 text-base font-semibold mt-1 leading-relaxed">
                                                         The Vortex AI engine will scan your codebase to synthesize infrastructure specifications. You will define cloud parameters in the following phase.
                                                     </p>
                                                 </div>
