@@ -177,7 +177,7 @@ export default function Dashboard() {
                                                     <Info className="text-bram-primary" size={36} />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <h4 className="font-black text-slate-900 uppercase tracking-tight text-xl">Initialization Ready</h4>
+                                                    <h4 className="font-black text-slate-900 uppercase tracking-normal text-xl">Initialization Ready</h4>
                                                     <p className="text-slate-500 text-base font-medium mt-1 leading-relaxed">
                                                         The Vortex AI engine will scan your codebase to synthesize infrastructure specifications. You will define cloud parameters in the following phase.
                                                     </p>
