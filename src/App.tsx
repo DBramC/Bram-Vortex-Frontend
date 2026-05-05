@@ -4,12 +4,11 @@ import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import AnalyzedRepo from './pages/AnalyzedRepo';
 import AnalysisParameters from './pages/AnalysisParameters';
-import type {JSX} from "react";
+import type { JSX } from "react";
 
 /**
  * 🛡️ REQUIRE AUTH
  * Προστατεύει τα routes που απαιτούν σύνδεση.
- * Αν δεν υπάρχει token, στέλνει τον χρήστη στο Login (/).
  */
 const RequireAuth = () => {
     const token = localStorage.getItem('jwt_token');
@@ -24,14 +23,12 @@ const RequireAuth = () => {
 
 /**
  * 🚪 PUBLIC ROUTE (Guest Only)
- * Χρησιμοποιείται για τη σελίδα Login.
- * Αν ο χρήστης ΕΧΕΙ token, τον "πετάει" αυτόματα στο Dashboard.
+ * Αν ο χρήστης είναι ήδη logged in, τον στέλνει στο Dashboard.
  */
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
     const token = localStorage.getItem('jwt_token');
 
     if (token) {
-        // Αν είναι ήδη συνδεδεμένος, δεν έχει λόγο να βλέπει το Login
         return <Navigate to="/dashboard" replace />;
     }
 
@@ -42,11 +39,7 @@ function App() {
     return (
         <Router>
             <Routes>
-                {/* 🌐 PUBLIC ROUTES
-                   Το "/" είναι πλέον προστατευμένο από το PublicRoute:
-                   Αν είσαι login -> Πας Dashboard.
-                   Αν όχι -> Βλέπεις τη σελίδα Login.
-                */}
+                {/* 🌐 PUBLIC ROUTES */}
                 <Route
                     path="/"
                     element={
@@ -56,22 +49,19 @@ function App() {
                     }
                 />
 
-                {/* Το callback πρέπει να είναι προσβάσιμο για να ολοκληρωθεί το login */}
                 <Route path="/auth-callback" element={<AuthCallback />} />
 
-                {/* 🔒 PROTECTED ROUTES
-                   Όλα τα παρακάτω απαιτούν έγκυρο jwt_token στο localStorage.
-                */}
+                {/* 🔒 PROTECTED ROUTES */}
                 <Route element={<RequireAuth />}>
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/analyzed-repo/:jobId" element={<AnalyzedRepo />} />
+
+                    {/* 🚀 FIXED PATH: Τώρα ταιριάζει με το navigate των Parameters */}
+                    <Route path="/dashboard/analysis/:jobId" element={<AnalyzedRepo />} />
+
                     <Route path="/parameters" element={<AnalysisParameters />} />
                 </Route>
 
-                {/* 🔄 CATCH ALL
-                   Οτιδήποτε άλλο path οδηγεί στην αρχική,
-                   η οποία με τη σειρά της θα σε κάνει redirect βάσει του token.
-                */}
+                {/* 🔄 CATCH ALL - Redirects to home, then RequireAuth/PublicRoute takes over */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Router>
