@@ -4,7 +4,8 @@ import api from '../api/axiosInstance';
 import {
     Loader2, ArrowLeft, Database, Terminal,
     CheckCircle2, Download, AlertCircle, Play, X,
-    Layers, HelpCircle, GitCommit, LayoutDashboard
+    Layers, HelpCircle, GitCommit, LayoutDashboard,
+    ChevronRight
 } from 'lucide-react';
 import { DiffEditor } from "@monaco-editor/react";
 
@@ -25,7 +26,10 @@ interface AnalysisJob {
     validatorStatus?: string;
     validator_status?: string;
     promptMessage: string | null;
-    blueprintJson: Record<string, unknown> | null;
+    blueprintJson: {
+        costEstimates?: Record<string, number>;
+        [key: string]: unknown;
+    } | null;
 }
 
 interface DiffFile {
@@ -46,8 +50,8 @@ const AnalyzedRepo: React.FC = () => {
     const [diffData, setDiffData] = useState<DiffFile[]>([]);
     const [isFetchingDiff, setIsFetchingDiff] = useState(false);
     const [selectedFile, setSelectedFile] = useState<DiffFile | null>(null);
-    const [activeCategory] = useState<string>('INFRASTRUCTURE');
     const [, setIsDeploying] = useState(false);
+    const [isSelectingCompute, setIsSelectingCompute] = useState(false);
 
     const stopPolling = useRef(false);
 
@@ -57,9 +61,11 @@ const AnalyzedRepo: React.FC = () => {
             try {
                 const response = await api.get(`/dashboard/jobs/${jobId}`);
                 setJob(response.data);
+
+                // Προσθέσαμε το PENDING_USER_SELECTION στα status που ΔΕΝ σταματάνε το polling
+                // αλλά περιμένουν ενέργεια του χρήστη
                 const finalStatuses = ['COMPLETED', 'FAILED', 'READY_FOR_EXECUTION', 'EXECUTING'];
                 if (finalStatuses.includes(response.data.status)) {
-                    // Σταματάμε το polling μόνο αν αποτύχει ή ολοκληρωθεί τελείως
                     stopPolling.current = response.data.status === 'COMPLETED' || response.data.status === 'FAILED';
                 }
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -67,6 +73,7 @@ const AnalyzedRepo: React.FC = () => {
                 console.warn("⏳ Job status fetch retry...");
             }
         };
+
         fetchJobStatus();
         const intervalId = setInterval(fetchJobStatus, 3000);
         return () => {
@@ -74,6 +81,22 @@ const AnalyzedRepo: React.FC = () => {
             stopPolling.current = true;
         };
     }, [jobId]);
+
+    // --- NEW: Handler για την επιλογή Compute ---
+    const handleSelectCompute = async (selectedCompute: string) => {
+        setIsSelectingCompute(true);
+        try {
+            await api.post(`/dashboard/jobs/${jobId}/select-compute`, {
+                selectedCompute: selectedCompute
+            });
+            // Το polling θα συνεχίσει και θα δει το status "ANALYZING" στην επόμενη κλήση
+        } catch (error) {
+            console.error("❌ Selection failed:", error);
+            alert("Could not save selection. Please try again.");
+        } finally {
+            setIsSelectingCompute(false);
+        }
+    };
 
     const categories = useMemo(() => {
         const groups: Record<string, DiffFile[]> = {
@@ -121,32 +144,16 @@ const AnalyzedRepo: React.FC = () => {
     };
 
     const handleYesCommit = async () => {
-        if (!job || !job.repoUrl) {
-            console.error("❌ Missing job data or repoUrl");
-            return;
-        }
-
+        if (!job || !job.repoUrl) return;
         setIsConfirmModalOpen(false);
         setIsDeploying(true);
-
         try {
-            await api.post(`/dashboard/confirm-deployment/${jobId}`, {
-                repoUrl: job.repoUrl
-            });
-
-            // Ανοίγουμε το GitHub σε νέο tab
+            await api.post(`/dashboard/confirm-deployment/${jobId}`, { repoUrl: job.repoUrl });
             window.open(job.repoUrl, '_blank', 'noopener,noreferrer');
-
-            // Κλείνουμε το modal αλλά παραμένουμε στη σελίδα για να βλέπουμε το status
             setIsReviewOpen(false);
-            stopPolling.current = false; // Ξαναξεκινάμε το polling αν είχε σταματήσει
-
-        } catch (error) {
-            console.error("❌ Deployment failed:", error);
-            alert("Failed to trigger deployment sequence. Please check logs.");
-        } finally {
-            setIsDeploying(false);
-        }
+            stopPolling.current = false;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (error) { alert("Failed to trigger deployment."); } finally { setIsDeploying(false); }
     };
 
     const handleNoDownload = async () => {
@@ -178,6 +185,7 @@ const AnalyzedRepo: React.FC = () => {
     ];
 
     const isReadyForExecution = job.status === 'READY_FOR_EXECUTION' || job.status === 'COMPLETED';
+    const isPendingSelection = job.status === 'PENDING_USER_SELECTION';
 
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-10 font-sans antialiased text-left relative">
@@ -199,14 +207,9 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-6">
-                    {/* Return to Dashboard Button */}
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[11px] uppercase tracking-[0.15em] text-slate-500 hover:bg-slate-100 border border-slate-200 transition-all"
-                    >
+                    <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[11px] uppercase tracking-[0.15em] text-slate-500 hover:bg-slate-100 border border-slate-200 transition-all">
                         <LayoutDashboard size={16} /> Portal
                     </button>
-
                     <div className={`px-10 py-3 rounded-full font-bold text-xs border-2 uppercase tracking-[0.2em]
                         ${isReadyForExecution ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-bram-accent border-bram-accent animate-pulse'}`}>
                         {job.status.replace(/_/g, ' ')}
@@ -214,8 +217,10 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* TERMINAL VIEWS */}
+            {/* MAIN CONTENT AREA (TERMINALS + SELECTOR) */}
             <div className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 min-h-0">
+
+                {/* LEFT: ANALYSIS LOGS */}
                 <div className="bg-[#0f172a] rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
                     <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
                         <Terminal size={18} className="text-emerald-400" />
@@ -225,14 +230,58 @@ const AnalyzedRepo: React.FC = () => {
                         <pre className="whitespace-pre-wrap leading-relaxed">{job.promptMessage || "> AI Analysis logs will appear here..."}</pre>
                     </div>
                 </div>
-                <div className="bg-[#0f172a] rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden">
-                    <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
-                        <Database size={18} className="text-blue-400" />
-                        <span className="font-bold text-[10px] uppercase text-slate-400 tracking-[0.2em]">Blueprint.json</span>
-                    </div>
-                    <div className="p-8 overflow-auto flex-1 font-mono text-sm text-blue-400 scrollbar-hide">
-                        <pre className="leading-relaxed">{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Spec JSON..."}</pre>
-                    </div>
+
+                {/* RIGHT: BLUEPRINT OR COST SELECTOR */}
+                <div className="bg-[#0f172a] rounded-[2rem] border-2 border-white/10 shadow-2xl flex flex-col overflow-hidden relative">
+                    {isPendingSelection ? (
+                        /* --- COST SELECTOR UI --- */
+                        <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-md z-10 p-10 flex flex-col items-center justify-center text-center">
+                            <div className="mb-6 p-4 bg-bram-primary/10 rounded-full">
+                                <Layers className="text-bram-primary animate-pulse" size={40} />
+                            </div>
+                            <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Architecture Choice</h2>
+                            <p className="text-slate-400 text-sm mb-10 max-w-xs font-medium">AI found multiple paths. Select your preferred infrastructure based on cost.</p>
+
+                            <div className="w-full max-w-sm space-y-3">
+                                {job.blueprintJson?.costEstimates && Object.entries(job.blueprintJson.costEstimates).map(([type, price]) => (
+                                    <button
+                                        key={type}
+                                        disabled={isSelectingCompute}
+                                        onClick={() => handleSelectCompute(type)}
+                                        className="w-full group bg-white/5 border border-white/10 p-5 rounded-2xl flex items-center justify-between hover:border-bram-primary hover:bg-bram-primary/5 transition-all"
+                                    >
+                                        <div className="flex flex-col text-left">
+                                            <span className="text-white font-bold text-[11px] uppercase tracking-widest">{type}</span>
+                                            <span className="text-slate-500 text-[10px] uppercase font-bold mt-1">Est. Monthly</span>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <span className="text-emerald-400 font-mono font-bold text-xl">${price.toFixed(2)}</span>
+                                            </div>
+                                            <ChevronRight className="text-slate-700 group-hover:text-bram-primary transition-colors" size={20} />
+                                        </div>
+                                    </button>
+                                ))}
+                                {isSelectingCompute && (
+                                    <div className="flex items-center gap-3 justify-center mt-4">
+                                        <Loader2 className="animate-spin text-bram-primary" size={16} />
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saving Selection...</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        /* --- STANDARD BLUEPRINT VIEW --- */
+                        <>
+                            <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center gap-4">
+                                <Database size={18} className="text-blue-400" />
+                                <span className="font-bold text-[10px] uppercase text-slate-400 tracking-[0.2em]">Blueprint.json</span>
+                            </div>
+                            <div className="p-8 overflow-auto flex-1 font-mono text-sm text-blue-400 scrollbar-hide">
+                                <pre className="leading-relaxed">{job.blueprintJson ? JSON.stringify(job.blueprintJson, null, 4) : "// Spec JSON..."}</pre>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -248,12 +297,11 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
 
                 <div className="flex gap-4">
-                    {/* Secondary Dashboard Exit */}
                     <button
                         onClick={() => navigate('/dashboard')}
                         className="px-6 py-4 rounded-3xl font-bold text-xs uppercase tracking-[0.1em] bg-white border-2 border-slate-200 text-slate-500 hover:bg-slate-50 transition-all"
                     >
-                        Exit to Dashboard
+                        Exit
                     </button>
 
                     <button
@@ -274,7 +322,7 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* MODALS (Review & Confirm) */}
+            {/* REVIEW MODAL (Diff Editor) */}
             {isReviewOpen && selectedFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6 overflow-hidden">
                     <div className="bg-[#0f172a] border border-white/10 w-full h-full max-h-[96vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl">
@@ -310,7 +358,7 @@ const AnalyzedRepo: React.FC = () => {
                             <div className="flex-1 flex flex-col p-6">
                                 <div className="mb-4 flex justify-between items-end">
                                     <div>
-                                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em] block">{activeCategory}</span>
+                                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em] block">Validation Editor</span>
                                         <h3 className="text-lg font-bold text-white uppercase tracking-tight">{selectedFile.filename.split(': ')[1]}</h3>
                                     </div>
                                     <div className="text-[10px] font-bold text-slate-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase tracking-widest">Language: {selectedFile.language}</div>
@@ -336,6 +384,7 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             )}
 
+            {/* CONFIRMATION MODAL */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-6">
                     <div className="bg-white border-2 border-slate-200 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -350,7 +399,7 @@ const AnalyzedRepo: React.FC = () => {
                                     <GitCommit size={18} /> Yes, Commit to my Repo
                                 </button>
                                 <button onClick={handleNoDownload} className="w-full py-5 rounded-2xl bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-[0.15em] hover:bg-slate-200 transition-all flex items-center justify-center gap-3">
-                                    <Download size={18} /> No, Download Locally & Exit
+                                    <Download size={18} /> No, Download Locally
                                 </button>
                                 <button onClick={() => setIsConfirmModalOpen(false)} className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hover:text-slate-600 transition-all">Cancel</button>
                             </div>
