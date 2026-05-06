@@ -71,7 +71,7 @@ const AnalyzedRepo: React.FC = () => {
         return () => { clearInterval(intervalId); stopPolling.current = true; };
     }, [jobId]);
 
-    // Categories Logic for Diff - Strictly following old design categorization
+    // Categories Logic for Diff
     const categories = useMemo(() => {
         const groups: Record<string, DiffFile[]> = {
             'INFRASTRUCTURE': diffData.filter(f => f.filename.includes('INFRASTRUCTURE')),
@@ -86,11 +86,21 @@ const AnalyzedRepo: React.FC = () => {
         return Object.fromEntries(Object.entries(groups).filter(([_, files]) => files.length > 0));
     }, [diffData]);
 
+    // Νέα έκδοση handleSelectCompute για αποφυγή ψευδών alerts σε timeouts
     const handleSelectCompute = async (type: string) => {
         setIsSelecting(true);
         try {
             await api.post(`/dashboard/jobs/${jobId}/select-compute`, { selectedCompute: type });
-        } catch (error) { alert("Selection failed."); } finally { setIsSelecting(false); }
+            // Το polling θα δει το status αλλαγμένο και θα ενημερώσει το UI αυτόματα
+        } catch (error) {
+            console.error("Selection background error:", error);
+            // Εμφανίζουμε alert μόνο αν το status παραμένει PENDING_USER_SELECTION
+            if (job?.status === 'PENDING_USER_SELECTION') {
+                alert("Connection issue, but check the logs - it might be processing!");
+            }
+        } finally {
+            setIsSelecting(false);
+        }
     };
 
     const handleOpenReview = async () => {
@@ -223,18 +233,8 @@ const AnalyzedRepo: React.FC = () => {
                                         </button>
                                     ))
                                 ) : (
-                                    /* SKELETON LOADERS FOR COSTS */
                                     [1, 2, 3].map((i) => (
-                                        <div key={i} className="w-full h-24 bg-white/5 rounded-3xl border-2 border-white/5 p-6 flex items-center justify-between animate-pulse">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-10 h-10 bg-slate-700 rounded-lg"></div>
-                                                <div className="space-y-2">
-                                                    <div className="w-24 h-2 bg-slate-700 rounded"></div>
-                                                    <div className="w-16 h-2 bg-slate-800 rounded"></div>
-                                                </div>
-                                            </div>
-                                            <div className="w-16 h-6 bg-emerald-900/30 rounded"></div>
-                                        </div>
+                                        <div key={i} className="w-full h-24 bg-white/5 rounded-3xl border-2 border-white/5 p-6 animate-pulse" />
                                     ))
                                 )}
                             </div>
@@ -254,17 +254,12 @@ const AnalyzedRepo: React.FC = () => {
                         </div>
                     )}
 
-                    {/* BLUEPRINT VIEW (HEADER & CONTENT) */}
+                    {/* BLUEPRINT VIEW */}
                     <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center justify-between font-mono">
                         <div className="flex items-center gap-4 text-blue-400">
                             <Database size={18} /> <span className="text-[10px] uppercase font-bold tracking-widest">Blueprint_Spec</span>
                         </div>
-                        {!job.blueprintJson && (
-                            <div className="flex items-center gap-2 text-blue-400">
-                                <Sparkles size={14} className="animate-pulse" />
-                                <span className="text-[9px] font-bold uppercase tracking-widest">AI Modeling...</span>
-                            </div>
-                        )}
+                        {!job.blueprintJson && <Sparkles size={14} className="animate-pulse" />}
                     </div>
                     <div className="p-8 overflow-auto flex-1 font-mono text-sm text-blue-400 scrollbar-hide">
                         {job.blueprintJson ? (
@@ -273,8 +268,6 @@ const AnalyzedRepo: React.FC = () => {
                             <div className="space-y-4 animate-pulse pt-4">
                                 <div className="h-4 bg-blue-900/20 rounded w-3/4"></div>
                                 <div className="h-4 bg-blue-900/20 rounded w-1/2"></div>
-                                <div className="h-4 bg-blue-900/20 rounded w-5/6"></div>
-                                <div className="h-4 bg-blue-900/20 rounded w-2/3"></div>
                             </div>
                         )}
                     </div>
@@ -282,8 +275,7 @@ const AnalyzedRepo: React.FC = () => {
             </div>
 
             {/* BOTTOM CONTROL PANEL */}
-            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-slate-100 p-6 shadow-2xl flex flex-col md:flex-row items-center gap-10 transition-all">
-                {/* Status List */}
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-slate-100 p-6 shadow-2xl flex flex-col md:flex-row items-center gap-10">
                 <div className="flex-1 flex gap-10 items-center overflow-x-auto scrollbar-hide px-4">
                     {serviceStatuses.map((svc) => (
                         <div key={svc.name} className="flex items-center gap-3 whitespace-nowrap">
@@ -293,137 +285,61 @@ const AnalyzedRepo: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex gap-4">
-                    <button
-                        onClick={handleDownloadMaster}
-                        disabled={!isReadyForExecution || isDownloading}
-                        className="px-8 py-4 rounded-3xl font-bold text-[11px] uppercase tracking-[0.15em] bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50 transition-all flex items-center gap-3 shadow-sm active:scale-95"
-                    >
+                    <button onClick={handleDownloadMaster} disabled={!isReadyForExecution || isDownloading}
+                            className="px-8 py-4 rounded-3xl font-bold text-[11px] uppercase tracking-[0.15em] bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50 transition-all flex items-center gap-3 shadow-sm active:scale-95">
                         {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />} Package
                     </button>
-
-                    <button
-                        onClick={handleOpenReview}
-                        disabled={!isReadyForExecution || isFetchingDiff}
-                        className="px-10 py-4 rounded-3xl font-bold text-[11px] uppercase tracking-[0.15em] bg-[#2563eb] text-white hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center gap-3 shadow-lg shadow-blue-100 active:scale-95"
-                    >
+                    <button onClick={handleOpenReview} disabled={!isReadyForExecution || isFetchingDiff}
+                            className="px-10 py-4 rounded-3xl font-bold text-[11px] uppercase tracking-[0.15em] bg-[#2563eb] text-white hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center gap-3 shadow-lg active:scale-95">
                         {isFetchingDiff ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />} Review & Deploy
                     </button>
                 </div>
             </div>
 
-            {/* --- MODAL: DIFF REVIEW (FOLLOWING OLD DESIGN STRICTLY) --- */}
+            {/* MODALS: DIFF REVIEW & COMMIT (Following Old Design Design) */}
             {isReviewOpen && selectedFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6 overflow-hidden">
                     <div className="bg-[#0f172a] border border-white/10 w-full h-full max-h-[96vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl">
-
-                        {/* Header following old design */}
-                        <div className="px-10 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                        <div className="px-10 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center text-white">
                             <div className="flex items-center gap-5">
-                                <div className="p-2 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                                    <CheckCircle2 className="text-emerald-400" size={24} />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-black text-white uppercase tracking-tight">Validated Architecture Review</h2>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Review AI-generated assets before pushing to production</p>
-                                </div>
+                                <CheckCircle2 className="text-emerald-400" size={28} />
+                                <h2 className="text-xl font-black uppercase tracking-tight">Validated Architecture Review</h2>
                             </div>
-                            <button onClick={() => setIsReviewOpen(false)} className="text-slate-500 hover:text-white p-3 bg-white/5 rounded-full transition-all">
-                                <X size={24} />
-                            </button>
+                            <button onClick={() => setIsReviewOpen(false)} className="text-slate-500 hover:text-white p-3 bg-white/5 rounded-full transition-all"><X size={24} /></button>
                         </div>
-
                         <div className="flex-1 flex min-h-0">
-                            {/* Left Sidebar following old design */}
                             <div className="w-72 border-r border-white/5 bg-black/20 flex flex-col p-6 overflow-y-auto scrollbar-hide">
                                 {Object.entries(categories).map(([catName, files]) => (
                                     <div key={catName} className="mb-8">
-                                        <div className="flex items-center gap-3 mb-4 px-2 opacity-40">
-                                            <Layers size={12} className="text-blue-400" />
-                                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">{catName}</span>
-                                        </div>
-                                        {files.map(file => (
-                                            <button
-                                                key={file.filename}
-                                                onClick={() => setSelectedFile(file)}
-                                                className={`w-full text-left px-4 py-3 rounded-xl text-[11px] uppercase font-bold mb-1.5 transition-all duration-200 ${selectedFile.filename === file.filename ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'}`}
-                                            >
-                                                {file.filename.split(': ')[1] || file.filename}
-                                            </button>
-                                        ))}
+                                        <div className="flex items-center gap-3 mb-4 px-2 opacity-40 text-white font-bold text-[10px] uppercase tracking-widest"><Layers size={12} className="text-blue-400" />{catName}</div>
+                                        {files.map(file => <button key={file.filename} onClick={() => setSelectedFile(file)} className={`w-full text-left px-4 py-3 rounded-xl text-[11px] uppercase font-bold mb-1.5 transition-all ${selectedFile.filename === file.filename ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-white/5'}`}>{file.filename.split(': ')[1] || file.filename}</button>)}
                                     </div>
                                 ))}
                             </div>
-
-                            {/* Main Content following old design */}
-                            <div className="flex-1 flex flex-col p-8 overflow-hidden bg-[#0a0f1d]">
-                                <div className="mb-6 flex justify-between items-end">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white uppercase tracking-tight">
-                                            {selectedFile.filename.includes(': ') ? selectedFile.filename.split(': ')[0] + ': ' : ''}
-                                            <span className="text-blue-400">{selectedFile.filename.split(': ')[1] || selectedFile.filename}</span>
-                                        </h3>
-                                    </div>
-                                    <div className="px-4 py-1.5 bg-white/5 rounded-lg border border-white/10">
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Language: {selectedFile.language}</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 border border-white/10 rounded-[2.5rem] overflow-hidden bg-black/40 shadow-inner group">
-                                    <DiffEditor
-                                        original={selectedFile.draftContent}
-                                        modified={selectedFile.validatedContent}
-                                        language={selectedFile.language}
-                                        theme="vs-dark"
-                                        options={{
-                                            minimap: { enabled: false },
-                                            fontSize: 13,
-                                            wordWrap: "on",
-                                            renderSideBySide: true,
-                                            scrollBeyondLastLine: false,
-                                            automaticLayout: true,
-                                            padding: { top: 20, bottom: 20 }
-                                        }}
-                                    />
-                                </div>
+                            <div className="flex-1 flex flex-col p-8 bg-[#0a0f1d] overflow-hidden">
+                                <div className="mb-6 flex justify-between items-end text-white uppercase font-bold"><h3 className="text-lg">{selectedFile.filename}</h3><div className="text-[10px] opacity-50">Language: {selectedFile.language}</div></div>
+                                <div className="flex-1 border border-white/10 rounded-[2.5rem] overflow-hidden bg-black/40 p-4"><DiffEditor original={selectedFile.draftContent} modified={selectedFile.validatedContent} language={selectedFile.language} theme="vs-dark" options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: "on", renderSideBySide: true }} /></div>
                             </div>
                         </div>
-
-                        {/* Footer following old design */}
-                        <div className="px-10 py-6 border-t border-white/5 bg-white/5 flex justify-end items-center gap-8">
-                            <button
-                                onClick={() => setIsReviewOpen(false)}
-                                className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-slate-300 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => setIsConfirmModalOpen(true)}
-                                className="px-10 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] uppercase tracking-[0.15em] flex items-center gap-3 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
-                            >
-                                <GitCommit size={18} /> Approve & Commit to Repo
-                            </button>
+                        <div className="px-10 py-6 border-t border-white/5 bg-white/5 flex justify-end gap-4">
+                            <button onClick={() => setIsReviewOpen(false)} className="px-8 py-3 font-bold text-[11px] uppercase tracking-widest text-slate-400">Cancel</button>
+                            <button onClick={() => setIsConfirmModalOpen(true)} className="px-10 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] uppercase flex items-center gap-3 shadow-lg"><GitCommit size={18} /> Approve & Commit</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- MODAL: COMMIT CONFIRMATION --- */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-6">
-                    <div className="bg-white border-2 border-slate-200 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 text-left">
+                    <div className="bg-white border-2 border-slate-200 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="flex flex-col items-center text-center">
                             <div className="p-5 bg-blue-50 rounded-full mb-6 text-blue-600"><HelpCircle size={48} /></div>
-                            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Final Confirmation</h3>
-                            <p className="text-slate-500 text-sm font-medium mb-10 leading-relaxed">
-                                Deploy synthesis to <strong>{job.repoName}</strong>? This action will push a new branch with the generated infrastructure to your GitHub repository.
-                            </p>
+                            <h3 className="text-2xl font-black text-slate-900 uppercase mb-2">Final Confirmation</h3>
+                            <p className="text-slate-500 text-sm font-medium mb-10 leading-relaxed">Deploy synthesis to <strong>{job.repoName}</strong>? This action will push a new branch with the generated infrastructure assets.</p>
                             <div className="w-full flex flex-col gap-3">
-                                <button onClick={handleYesCommit} disabled={isDeploying} className="w-full py-5 rounded-2xl bg-[#2563eb] text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-lg active:scale-95">
-                                    {isDeploying ? <Loader2 className="animate-spin" /> : <GitCommit size={18} />} Yes, Push Changes
-                                </button>
-                                <button onClick={() => setIsConfirmModalOpen(false)} className="w-full py-5 rounded-2xl bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95">Cancel</button>
+                                <button onClick={handleYesCommit} disabled={isDeploying} className="w-full py-5 rounded-2xl bg-[#2563eb] text-white font-bold text-xs uppercase flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all">{isDeploying ? <Loader2 className="animate-spin" /> : <GitCommit size={18} />} Yes, Push Changes</button>
+                                <button onClick={() => setIsConfirmModalOpen(false)} className="w-full py-5 rounded-2xl bg-slate-100 text-slate-600 font-bold text-xs uppercase transition-all active:scale-95">Cancel</button>
                             </div>
                         </div>
                     </div>
