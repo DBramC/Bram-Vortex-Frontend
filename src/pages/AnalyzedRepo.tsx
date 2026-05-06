@@ -64,7 +64,6 @@ const AnalyzedRepo: React.FC = () => {
                 if (finalStatuses.includes(response.data.status)) {
                     stopPolling.current = true;
                 }
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) { console.warn("Polling retry..."); }
         };
         fetchJobStatus();
@@ -72,6 +71,7 @@ const AnalyzedRepo: React.FC = () => {
         return () => { clearInterval(intervalId); stopPolling.current = true; };
     }, [jobId]);
 
+    // Categories Logic for Diff - Strictly following old design categorization
     const categories = useMemo(() => {
         const groups: Record<string, DiffFile[]> = {
             'INFRASTRUCTURE': diffData.filter(f => f.filename.includes('INFRASTRUCTURE')),
@@ -83,7 +83,6 @@ const AnalyzedRepo: React.FC = () => {
                 (!f.filename.includes('INFRASTRUCTURE') && !f.filename.includes('CONFIGURATION'))
             )
         };
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         return Object.fromEntries(Object.entries(groups).filter(([_, files]) => files.length > 0));
     }, [diffData]);
 
@@ -91,7 +90,6 @@ const AnalyzedRepo: React.FC = () => {
         setIsSelecting(true);
         try {
             await api.post(`/dashboard/jobs/${jobId}/select-compute`, { selectedCompute: type });
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Selection failed."); } finally { setIsSelecting(false); }
     };
 
@@ -106,7 +104,6 @@ const AnalyzedRepo: React.FC = () => {
                     setIsReviewOpen(true);
                 }
             }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Review failed to load."); } finally { setIsFetchingDiff(false); }
     };
 
@@ -118,7 +115,6 @@ const AnalyzedRepo: React.FC = () => {
             await api.post(`/dashboard/confirm-deployment/${jobId}`, { repoUrl: job.repoUrl });
             window.open(job.repoUrl, '_blank');
             setIsReviewOpen(false);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Deployment failed."); } finally { setIsDeploying(false); }
     };
 
@@ -133,7 +129,6 @@ const AnalyzedRepo: React.FC = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) { alert("Download failed."); } finally { setIsDownloading(false); }
     };
 
@@ -318,57 +313,95 @@ const AnalyzedRepo: React.FC = () => {
                 </div>
             </div>
 
-            {/* --- MODAL: DIFF REVIEW --- */}
+            {/* --- MODAL: DIFF REVIEW (FOLLOWING OLD DESIGN STRICTLY) --- */}
             {isReviewOpen && selectedFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6 overflow-hidden">
                     <div className="bg-[#0f172a] border border-white/10 w-full h-full max-h-[96vh] rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl">
+
+                        {/* Header following old design */}
                         <div className="px-10 py-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                            <div className="flex items-center gap-5 text-white">
-                                <CheckCircle2 className="text-emerald-400" size={28} />
+                            <div className="flex items-center gap-5">
+                                <div className="p-2 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                                    <CheckCircle2 className="text-emerald-400" size={24} />
+                                </div>
                                 <div>
-                                    <h2 className="text-xl font-black uppercase tracking-tight">Validated Architecture Review</h2>
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Review AI-Generated assets before pushing to Production</p>
+                                    <h2 className="text-xl font-black text-white uppercase tracking-tight">Validated Architecture Review</h2>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Review AI-generated assets before pushing to production</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsReviewOpen(false)} className="text-slate-500 hover:text-white p-3 bg-white/5 rounded-full transition-colors"><X size={24} /></button>
+                            <button onClick={() => setIsReviewOpen(false)} className="text-slate-500 hover:text-white p-3 bg-white/5 rounded-full transition-all">
+                                <X size={24} />
+                            </button>
                         </div>
+
                         <div className="flex-1 flex min-h-0">
-                            {/* File Sidebar */}
-                            <div className="w-64 border-r border-white/5 bg-black/20 flex flex-col p-6 overflow-y-auto scrollbar-hide">
+                            {/* Left Sidebar following old design */}
+                            <div className="w-72 border-r border-white/5 bg-black/20 flex flex-col p-6 overflow-y-auto scrollbar-hide">
                                 {Object.entries(categories).map(([catName, files]) => (
                                     <div key={catName} className="mb-8">
-                                        <div className="flex items-center gap-3 mb-3 px-2 opacity-40 text-white">
+                                        <div className="flex items-center gap-3 mb-4 px-2 opacity-40">
                                             <Layers size={12} className="text-blue-400" />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest">{catName}</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">{catName}</span>
                                         </div>
                                         {files.map(file => (
-                                            <button key={file.filename} onClick={() => setSelectedFile(file)} className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] uppercase font-bold mb-1 transition-all ${selectedFile.filename === file.filename ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/5'}`}>
+                                            <button
+                                                key={file.filename}
+                                                onClick={() => setSelectedFile(file)}
+                                                className={`w-full text-left px-4 py-3 rounded-xl text-[11px] uppercase font-bold mb-1.5 transition-all duration-200 ${selectedFile.filename === file.filename ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'}`}
+                                            >
                                                 {file.filename.split(': ')[1] || file.filename}
                                             </button>
                                         ))}
                                     </div>
                                 ))}
                             </div>
-                            {/* Editor View */}
-                            <div className="flex-1 flex flex-col p-6 overflow-hidden">
-                                <div className="mb-4 flex justify-between items-end">
-                                    <h3 className="text-lg font-bold text-white uppercase tracking-tight">{selectedFile.filename}</h3>
-                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Language: {selectedFile.language}</div>
+
+                            {/* Main Content following old design */}
+                            <div className="flex-1 flex flex-col p-8 overflow-hidden bg-[#0a0f1d]">
+                                <div className="mb-6 flex justify-between items-end">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white uppercase tracking-tight">
+                                            {selectedFile.filename.includes(': ') ? selectedFile.filename.split(': ')[0] + ': ' : ''}
+                                            <span className="text-blue-400">{selectedFile.filename.split(': ')[1] || selectedFile.filename}</span>
+                                        </h3>
+                                    </div>
+                                    <div className="px-4 py-1.5 bg-white/5 rounded-lg border border-white/10">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Language: {selectedFile.language}</span>
+                                    </div>
                                 </div>
-                                <div className="flex-1 border border-white/5 rounded-[2rem] overflow-hidden bg-black p-4 shadow-2xl">
+
+                                <div className="flex-1 border border-white/10 rounded-[2.5rem] overflow-hidden bg-black/40 shadow-inner group">
                                     <DiffEditor
                                         original={selectedFile.draftContent}
                                         modified={selectedFile.validatedContent}
                                         language={selectedFile.language}
                                         theme="vs-dark"
-                                        options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: "on", renderSideBySide: true }}
+                                        options={{
+                                            minimap: { enabled: false },
+                                            fontSize: 13,
+                                            wordWrap: "on",
+                                            renderSideBySide: true,
+                                            scrollBeyondLastLine: false,
+                                            automaticLayout: true,
+                                            padding: { top: 20, bottom: 20 }
+                                        }}
                                     />
                                 </div>
                             </div>
                         </div>
-                        <div className="px-10 py-6 border-t border-white/5 bg-white/5 flex justify-end gap-4">
-                            <button onClick={() => setIsReviewOpen(false)} className="px-8 py-3 font-bold text-[11px] uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Cancel</button>
-                            <button onClick={() => setIsConfirmModalOpen(true)} className="px-10 py-4 rounded-2xl font-bold text-[11px] uppercase bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-3 transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+
+                        {/* Footer following old design */}
+                        <div className="px-10 py-6 border-t border-white/5 bg-white/5 flex justify-end items-center gap-8">
+                            <button
+                                onClick={() => setIsReviewOpen(false)}
+                                className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => setIsConfirmModalOpen(true)}
+                                className="px-10 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] uppercase tracking-[0.15em] flex items-center gap-3 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                            >
                                 <GitCommit size={18} /> Approve & Commit to Repo
                             </button>
                         </div>
@@ -379,7 +412,7 @@ const AnalyzedRepo: React.FC = () => {
             {/* --- MODAL: COMMIT CONFIRMATION --- */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-6">
-                    <div className="bg-white border-2 border-slate-200 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-white border-2 border-slate-200 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 text-left">
                         <div className="flex flex-col items-center text-center">
                             <div className="p-5 bg-blue-50 rounded-full mb-6 text-blue-600"><HelpCircle size={48} /></div>
                             <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Final Confirmation</h3>
