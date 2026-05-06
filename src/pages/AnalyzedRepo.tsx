@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import {
     Loader2, ArrowLeft, Database, Terminal, Layers, Cpu, Box,
-    ChevronRight, ShieldCheck, Zap, Sparkles
+    ChevronRight, ShieldCheck, Sparkles, CheckCircle2,
+    AlertCircle, Download, Play
 } from 'lucide-react';
 
 // --- INTERFACES ---
@@ -12,6 +13,14 @@ interface AnalysisJob {
     repoName: string;
     targetCloud: string;
     status: string;
+    terraformStatus?: string;
+    terraform_status?: string;
+    ansibleStatus?: string;
+    ansible_status?: string;
+    pipelineStatus?: string;
+    pipeline_status?: string;
+    validatorStatus?: string;
+    validator_status?: string;
     promptMessage: string | null;
     blueprintJson: {
         costEstimates?: Record<string, number>;
@@ -25,6 +34,8 @@ const AnalyzedRepo: React.FC = () => {
     const navigate = useNavigate();
     const [job, setJob] = useState<AnalysisJob | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [isFetchingDiff] = useState(false);
     const stopPolling = useRef(false);
 
     useEffect(() => {
@@ -54,6 +65,29 @@ const AnalyzedRepo: React.FC = () => {
         } catch (error) { alert("Selection failed."); } finally { setIsSelecting(false); }
     };
 
+    const handleDownloadMaster = async () => {
+        setIsDownloading(true);
+        try {
+            const response = await api.get(`/dashboard/download/${jobId}`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `vortex-package-${jobId}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (error) { alert("Download failed."); } finally { setIsDownloading(false); }
+    };
+
+    const getMiniStatusIcon = (rawStatus: string | undefined) => {
+        if (!rawStatus) return <Loader2 size={16} className="animate-spin text-slate-300" />;
+        const status = rawStatus.replace(/"/g, '').trim().toUpperCase();
+        if (status === 'COMPLETED' || status === 'SKIPPED') return <CheckCircle2 size={16} className="text-emerald-500" />;
+        if (status === 'FAILED') return <AlertCircle size={16} className="text-red-500" />;
+        return <Loader2 size={16} className="animate-spin text-bram-primary" />;
+    };
+
     const getComputeIcon = (type: string) => {
         if (type.includes('Machine')) return <Cpu size={32} />;
         if (type.includes('Container')) return <Box size={32} />;
@@ -63,8 +97,15 @@ const AnalyzedRepo: React.FC = () => {
     if (!job) return <div className="h-screen bg-bram-bg flex items-center justify-center"><Loader2 className="animate-spin text-bram-primary" size={64} /></div>;
 
     const isPendingSelection = job.status === 'PENDING_USER_SELECTION';
-    const isReadyForExecution = job.status === 'READY_FOR_EXECUTION';
+    const isReadyForExecution = job.status === 'READY_FOR_EXECUTION' || job.status === 'COMPLETED';
     const hasCosts = !!job.blueprintJson?.costEstimates;
+
+    const serviceStatuses = [
+        { name: 'Terraform', status: job.terraformStatus || job.terraform_status },
+        { name: 'Ansible', status: job.ansibleStatus || job.ansible_status },
+        { name: 'CI/CD', status: job.pipelineStatus || job.pipeline_status },
+        { name: 'Validator', status: job.validatorStatus || job.validator_status },
+    ];
 
     return (
         <div className="h-screen bg-bram-bg flex flex-col overflow-hidden p-10 font-sans relative">
@@ -129,7 +170,6 @@ const AnalyzedRepo: React.FC = () => {
                                         </button>
                                     ))
                                 ) : (
-                                    /* --- COST SKELETON LOADER --- */
                                     [1, 2, 3].map((i) => (
                                         <div key={i} className="w-full h-24 bg-white/5 rounded-3xl border-2 border-white/5 p-6 flex items-center justify-between animate-pulse">
                                             <div className="flex items-center gap-5">
@@ -139,7 +179,6 @@ const AnalyzedRepo: React.FC = () => {
                                                     <div className="w-16 h-2 bg-slate-800 rounded"></div>
                                                 </div>
                                             </div>
-                                            <div className="w-16 h-6 bg-emerald-900/30 rounded"></div>
                                         </div>
                                     ))
                                 )}
@@ -147,29 +186,20 @@ const AnalyzedRepo: React.FC = () => {
                         </div>
                     )}
 
-                    {/* CASE 2: READY FOR EXECUTION (SUCCESS OVERLAY) */}
+                    {/* CASE 2: SUCCESS OVERLAY */}
                     {isReadyForExecution && (
-                        <div className="absolute inset-0 bg-emerald-600/10 backdrop-blur-2xl z-30 p-12 flex flex-col items-center justify-center animate-in zoom-in duration-500">
+                        <div className="absolute inset-0 bg-emerald-600/10 backdrop-blur-2xl z-30 p-12 flex flex-col items-center justify-center animate-in zoom-in duration-500 text-center">
                             <div className="bg-emerald-500 p-6 rounded-full shadow-[0_0_50px_rgba(16,185,129,0.5)] mb-8">
                                 <ShieldCheck size={64} className="text-white" />
                             </div>
-                            <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-4 text-center">Synthesis Validated</h2>
-                            <p className="text-emerald-100 text-sm font-bold uppercase tracking-widest mb-12 text-center max-w-sm leading-relaxed">
-                                Infrastructure code and deployment pipelines have been generated and verified for compliance.
+                            <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-4">Synthesis Validated</h2>
+                            <p className="text-emerald-100 text-sm font-bold uppercase tracking-widest mb-12 max-w-sm leading-relaxed">
+                                Infrastructure and pipelines verified. System is ready for delivery.
                             </p>
-
-                            <button
-                                onClick={() => navigate(`/dashboard/jobs/${jobId}/diff`)}
-                                className="w-full max-w-md py-6 bg-white text-emerald-700 rounded-[2rem] font-black text-xl uppercase tracking-widest flex items-center justify-center gap-4 hover:scale-105 transition-all shadow-2xl active:scale-95"
-                            >
-                                <Zap fill="currentColor" /> Review & Commit <ChevronRight />
-                            </button>
-
-                            <p className="mt-8 text-emerald-400/60 text-[10px] font-bold uppercase tracking-[0.3em]">Codebase: Synchronized & Secured</p>
                         </div>
                     )}
 
-                    {/* DEFAULT: BLUEPRINT VIEW */}
+                    {/* BLUEPRINT HEADER */}
                     <div className="bg-slate-800/50 px-8 py-4 border-b border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <Database size={18} className="text-blue-400" />
@@ -189,18 +219,47 @@ const AnalyzedRepo: React.FC = () => {
                                 {JSON.stringify(job.blueprintJson, null, 4)}
                             </pre>
                         ) : (
-                            /* --- BLUEPRINT SKELETON LOADER --- */
                             <div className="space-y-4 animate-pulse">
                                 <div className="h-4 bg-blue-900/20 rounded w-3/4"></div>
                                 <div className="h-4 bg-blue-900/20 rounded w-1/2"></div>
                                 <div className="h-4 bg-blue-900/20 rounded w-5/6"></div>
-                                <div className="h-4 bg-blue-900/20 rounded w-2/3"></div>
-                                <div className="h-4 bg-blue-900/20 rounded w-3/4"></div>
-                                <div className="h-4 bg-blue-900/20 rounded w-1/2"></div>
-                                <div className="h-4 bg-blue-900/20 rounded w-4/5"></div>
                             </div>
                         )}
                     </div>
+                </div>
+            </div>
+
+            {/* --- BOTTOM CONTROL PANEL --- */}
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[2.5rem] border-2 border-slate-100 p-6 shadow-2xl flex flex-col md:flex-row items-center gap-10">
+                {/* Status List */}
+                <div className="flex-1 flex gap-10 items-center overflow-x-auto scrollbar-hide">
+                    {serviceStatuses.map((svc) => (
+                        <div key={svc.name} className="flex items-center gap-3 whitespace-nowrap">
+                            {getMiniStatusIcon(svc.status)}
+                            <span className="text-[11px] font-black uppercase text-slate-500 tracking-[0.15em]">{svc.name}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-4">
+                    <button
+                        onClick={handleDownloadMaster}
+                        disabled={!isReadyForExecution || isDownloading}
+                        className="px-8 py-4 rounded-3xl font-bold text-[11px] uppercase tracking-[0.15em] bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50 transition-all flex items-center gap-3"
+                    >
+                        {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                        Package
+                    </button>
+
+                    <button
+                        onClick={() => navigate(`/dashboard/jobs/${jobId}/diff`)}
+                        disabled={!isReadyForExecution || isFetchingDiff}
+                        className="px-10 py-4 rounded-3xl font-bold text-[11px] uppercase tracking-[0.15em] bg-[#2563eb] text-white hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center gap-3 shadow-lg shadow-blue-200"
+                    >
+                        {isFetchingDiff ? <Loader2 className="animate-spin" size={18} /> : <Play size={18} />}
+                        Review & Deploy
+                    </button>
                 </div>
             </div>
         </div>
